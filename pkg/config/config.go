@@ -9,9 +9,12 @@ import (
 )
 
 const (
-	TraceName = "regionless-kv-store"
-	// todo: get from arg or env var instead of hard code
-	TraceEnv = "rkv-830"
+	TraceName       = "regionless-kv-store"
+	defaultTraceEnv = "rkv-test"
+)
+
+var (
+	TraceEnv = defaultTraceEnv
 )
 
 type KVConfiguration struct {

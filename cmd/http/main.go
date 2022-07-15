@@ -24,6 +24,13 @@ import (
 )
 
 func main() {
+	// -trace-env="onebox-730", for instance, is for 730 milestone, one-box rkv system
+	traceEnv := flag.String("trace-env", "", "environment name displayed in tracing system")
+	flag.Parse()
+	if len(*traceEnv) > 0 {
+		config.TraceEnv = *traceEnv
+	}
+
 	traceProvider, err := tracerProvider("http://localhost:14268/api/traces")
 	if err != nil {
 		log.Fatal(err)
