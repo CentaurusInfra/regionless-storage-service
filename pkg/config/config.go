@@ -10,11 +10,11 @@ import (
 
 const (
 	TraceName       = "regionless-kv-store"
-	defaultTraceEnv = "rkv-test"
+	DefaultTraceEnv = "rkv-test"
 )
 
 var (
-	TraceEnv = defaultTraceEnv
+	TraceEnv string
 )
 
 type KVConfiguration struct {
