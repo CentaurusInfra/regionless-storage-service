@@ -8,6 +8,12 @@ import (
 	"runtime"
 )
 
+const (
+	TraceName = "regionless-kv-store"
+	// todo: get from arg or env var instead of hard code
+	TraceEnv = "rkv-830"
+)
+
 type KVConfiguration struct {
 	ConsistentHash string
 	StoreType      string
