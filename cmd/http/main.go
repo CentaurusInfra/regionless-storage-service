@@ -4,7 +4,11 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strconv"
 	"sync"
@@ -20,6 +24,13 @@ import (
 )
 
 func main() {
+	traceProvider, err := tracerProvider("http://localhost:14268/api/traces")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	otel.SetTracerProvider(traceProvider)
+
 	conf, err := config.NewKVConfiguration("config.json")
 	if err != nil {
 		panic(fmt.Errorf("error setting gateway agent configuration: %v", err))
@@ -107,11 +118,17 @@ func (handler *KeyValueHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 }
 
 func (handler *KeyValueHandler) getKV(w http.ResponseWriter, r *http.Request) (string, error) {
+	// tracing getkv op
+	tracer := otel.Tracer(config.TraceName)
+	ctx, span := tracer.Start(r.Context(), "getKV")
+	defer span.End()
 
 	key, ok := r.URL.Query()["key"]
 	if ok {
-		rev, _, _, err := handler.indexTree.Get([]byte(key[0]), 0)
+		rev, _, _, err := handler.indexTree.Get(ctx, []byte(key[0]), 0)
 		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
 			return "", err
 		}
 
@@ -120,26 +137,45 @@ func (handler *KeyValueHandler) getKV(w http.ResponseWriter, r *http.Request) (s
 		if err != nil {
 			return "", err
 		}
-		ret, err := conn.Get(rev.String())
-		if err != nil {
-			return "", err
+
+		// tracing get from storage instances as client
+		// todo: extract it out as method?
+		{
+			_, span := otel.Tracer(config.TraceName).Start(ctx, "get kv", trace.WithSpanKind(trace.SpanKindClient))
+			defer span.End()
+
+			ret, err := conn.Get(rev.String())
+			if err != nil {
+				span.RecordError(err)
+				span.SetStatus(codes.Error, err.Error())
+				return "", err
+			}
+			return fmt.Sprintf("The value is %s with the revision %s at %s\n", ret, rev.String(), node.String()), nil
 		}
-		return fmt.Sprintf("The value is %s with the revision %s at %s\n", ret, rev.String(), node.String()), nil
 	}
 	return "", fmt.Errorf("the key is missing at the query %v", r.URL.Query())
 }
 
 func (handler *KeyValueHandler) createKV(w http.ResponseWriter, r *http.Request) (string, error) {
+	// tracing createkv op
+	tracer := otel.Tracer(config.TraceName)
+	ctx, rootSpan := tracer.Start(r.Context(), "createKV")
+	defer rootSpan.End()
+
 	rev := revision.GetGlobalIncreasingRevision()
 	node := handler.ch.LocateKey([]byte(strconv.FormatUint(rev, 10)))
 	conn, err := database.Factory(handler.conf.StoreType, node.String())
 	if err != nil {
+		rootSpan.RecordError(err)
+		rootSpan.SetStatus(codes.Error, err.Error())
 		return "", err
 	}
 
 	byteValue, err := ioutil.ReadAll(r.Body)
 
 	if err != nil {
+		rootSpan.RecordError(err)
+		rootSpan.SetStatus(codes.Error, err.Error())
 		klog.Errorf("Failed to read allocations with the error %v", err)
 		return "", err
 	}
@@ -147,28 +183,67 @@ func (handler *KeyValueHandler) createKV(w http.ResponseWriter, r *http.Request)
 	err = json.Unmarshal(byteValue, &x)
 
 	if err != nil {
+		rootSpan.RecordError(err)
+		rootSpan.SetStatus(codes.Error, err.Error())
 		return "", err
 	}
 
-	_, err = conn.Put(strconv.FormatUint(rev, 10), x["value"])
-	handler.indexTree.Put([]byte(x["key"]), index.NewRevision(int64(rev), 0))
+	{
+		_, span := otel.Tracer(config.TraceName).Start(ctx, "set kv", trace.WithSpanKind(trace.SpanKindClient))
+		defer span.End()
+		_, err = conn.Put(strconv.FormatUint(rev, 10), x["value"])
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		}
+	}
+
+	{
+		_, span := otel.Tracer(config.TraceName).Start(ctx, "put index")
+		defer span.End()
+		handler.indexTree.Put([]byte(x["key"]), index.NewRevision(int64(rev), 0))
+	}
+
 	return fmt.Sprintf("The key value pair (%s,%s) has been saved as revision %s at %s\n", x["key"], x["value"], strconv.FormatUint(rev, 10), node.String()), err
 }
 
 func (handler *KeyValueHandler) deleteKV(w http.ResponseWriter, r *http.Request) (string, error) {
+	// tracing deletekv op
+	tracer := otel.Tracer(config.TraceName)
+	ctx, rootSpan := tracer.Start(r.Context(), "deleteKV")
+	defer rootSpan.End()
+
 	key, ok := r.URL.Query()["key"]
 	if ok {
-		rev, _, _, err := handler.indexTree.Get([]byte(key[0]), 0)
+		rev, _, _, err := handler.indexTree.Get(ctx, []byte(key[0]), 0)
 		if err != nil {
+			rootSpan.RecordError(err)
+			rootSpan.SetStatus(codes.Error, err.Error())
 			return "", err
 		}
 		//handler.indexTree.Tombstone([]byte(key[0]), rev)
 		node := handler.ch.LocateKey([]byte(rev.String()))
 		conn, err := database.Factory(handler.conf.StoreType, node.String())
 		if err != nil {
+			rootSpan.RecordError(err)
+			rootSpan.SetStatus(codes.Error, err.Error())
 			return "", err
 		}
-		err = conn.Delete(rev.String())
+
+		{
+			_, span := otel.Tracer(config.TraceName).Start(ctx, "delete kv", trace.WithSpanKind(trace.SpanKindClient))
+			defer span.End()
+			err = conn.Delete(rev.String())
+			if err != nil {
+				span.RecordError(err)
+				span.SetStatus(codes.Error, err.Error())
+			}
+		}
+
+		if err != nil {
+			rootSpan.RecordError(err)
+			rootSpan.SetStatus(codes.Error, err.Error())
+		}
 		return fmt.Sprintf("The key %s has been removed at %s\n", key, node.String()), err
 	}
 	return "", fmt.Errorf("the key is missing at the query %v", r.URL.Query())

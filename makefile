@@ -1,2 +1,2 @@
 build:
-	go build cmd/http/main.go
+	go build -o main ./cmd/http

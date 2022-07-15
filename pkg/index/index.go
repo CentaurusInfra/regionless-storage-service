@@ -1,7 +1,11 @@
 package index
 
 import (
+	"context"
 	"fmt"
+	"github.com/regionless-storage-service/pkg/config"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
 	"sort"
 	"sync"
 
@@ -9,7 +13,7 @@ import (
 )
 
 type Index interface {
-	Get(key []byte, atRev int64) (rev, created Revision, ver int64, err error)
+	Get(ctx context.Context, key []byte, atRev int64) (rev, created Revision, ver int64, err error)
 	Put(key []byte, rev Revision)
 	Tombstone(key []byte, rev Revision) error
 	Equal(b Index) bool
@@ -56,7 +60,11 @@ func (ti *treeIndex) Restore(key []byte, created, modified Revision, ver int64) 
 	okeyi.put(modified.main, modified.sub)
 }
 
-func (ti *treeIndex) Get(key []byte, atRev int64) (modified, created Revision, ver int64, err error) {
+func (ti *treeIndex) Get(ctx context.Context, key []byte, atRev int64) (modified, created Revision, ver int64, err error) {
+	// tracing indexing component - lookup index
+	_, span := otel.Tracer(config.TraceName).Start(ctx, "get index")
+	defer span.End()
+
 	keyi := &keyIndex{key: key}
 
 	ti.RLock()
@@ -64,6 +72,8 @@ func (ti *treeIndex) Get(key []byte, atRev int64) (modified, created Revision, v
 	item := ti.tree.Get(keyi)
 	fmt.Printf("****The key %v and get %v", key, item)
 	if item == nil {
+		span.RecordError(ErrRevisionNotFound)
+		span.SetStatus(codes.Error, ErrRevisionNotFound.Error())
 		return Revision{}, Revision{}, 0, ErrRevisionNotFound
 	}
 
@@ -76,7 +86,7 @@ func (ti *treeIndex) Get(key []byte, atRev int64) (modified, created Revision, v
 
 func (ti *treeIndex) Range(key, end []byte, atRev int64) (keys [][]byte, revs []Revision) {
 	if end == nil {
-		rev, _, _, err := ti.Get(key, atRev)
+		rev, _, _, err := ti.Get(context.TODO(), key, atRev)
 		if err != nil {
 			return nil, nil
 		}
