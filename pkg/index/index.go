@@ -14,6 +14,7 @@ import (
 
 type Index interface {
 	Get(ctx context.Context, key []byte, atRev int64) (rev, created Revision, ver int64, err error)
+	RangeSince(key, end []byte, rev int64) []Revision
 	Put(key []byte, rev Revision)
 	Tombstone(key []byte, rev Revision) error
 	Equal(b Index) bool
@@ -69,8 +70,8 @@ func (ti *treeIndex) Get(ctx context.Context, key []byte, atRev int64) (modified
 
 	ti.RLock()
 	defer ti.RUnlock()
+
 	item := ti.tree.Get(keyi)
-	fmt.Printf("****The key %v and get %v", key, item)
 	if item == nil {
 		span.RecordError(ErrRevisionNotFound)
 		span.SetStatus(codes.Error, ErrRevisionNotFound.Error())

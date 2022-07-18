@@ -1,16 +1,12 @@
 {
     "ConsistentHash": "rendezvous",
+    "BucketSize": 2,
     "StoreType": "redis",
     "Stores": [
         {
             "Name": "store1",
-            "Host": "172.31.12.96",
+            "Host": "127.0.0.1",
             "Port": 6379
-        },
-        {
-            "Name": "store2",
-            "Host": "172.31.12.96",
-            "Port": 6380
         }
     ]
 }
