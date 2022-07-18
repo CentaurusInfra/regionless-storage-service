@@ -2,7 +2,6 @@ package index
 
 import (
 	"context"
-	"fmt"
 	"github.com/regionless-storage-service/pkg/config"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"

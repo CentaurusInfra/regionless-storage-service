@@ -138,46 +138,45 @@ func (handler *KeyValueHandler) getKV(w http.ResponseWriter, r *http.Request) (s
 			if err != nil {
 				return "", err
 			}
-      
-      {
-   			_, span := otel.Tracer(config.TraceName).Start(ctx, "rangesince kv", trace.WithSpanKind(trace.SpanKindClient))
-  			defer span.End()
 
-	  		revs := handler.indexTree.RangeSince([]byte(key[0]), nil, int64(fromRev))
-		  	rets, err := handler.getValuesByRevs(revs)
-			  if err != nil {
-  				span.RecordError(err)
-	  			span.SetStatus(codes.Error, err.Error())
-				  return "", err
-			  }
-      }
-      
-			m := make(map[string]string, 0)
-			for i := 0; i < len(revs); i++ {
-				m[revs[i].String()] = rets[i]
+			{
+				_, span := otel.Tracer(config.TraceName).Start(ctx, "rangesince kv", trace.WithSpanKind(trace.SpanKindClient))
+				defer span.End()
+
+				revs := handler.indexTree.RangeSince([]byte(key[0]), nil, int64(fromRev))
+				rets, err := handler.getValuesByRevs(revs)
+				if err != nil {
+					span.RecordError(err)
+					span.SetStatus(codes.Error, err.Error())
+					return "", err
+				}
+				m := make(map[string]string, 0)
+				for i := 0; i < len(revs); i++ {
+					m[revs[i].String()] = rets[i]
+				}
+				return fmt.Sprintf("The values are %s from the revision %d\n", fmt.Sprint(m), fromRev), nil
 			}
-			return fmt.Sprintf("The values are %s from the revision %d\n", fmt.Sprint(m), fromRev), nil
 
 		} else {
-  		rev, _, _, err := handler.indexTree.Get(ctx, []byte(key[0]), 0)
-	  	if err != nil {
-		  	span.RecordError(err)
-			  span.SetStatus(codes.Error, err.Error())
-			  return "", err
-		  }
+			rev, _, _, err := handler.indexTree.Get(ctx, []byte(key[0]), 0)
+			if err != nil {
+				span.RecordError(err)
+				span.SetStatus(codes.Error, err.Error())
+				return "", err
+			}
 
-      {
- 			  _, span := otel.Tracer(config.TraceName).Start(ctx, "get kv", trace.WithSpanKind(trace.SpanKindClient))
-			  defer span.End()
-  			ret, err := handler.getValueByRev(rev)
-	  		if err != nil {
-  				span.RecordError(err)
-	  			span.SetStatus(codes.Error, err.Error())
-		  		return "", err
-			  }
-      }
-      
-			return fmt.Sprintf("The value is %s with the revision %s\n", ret, rev.String()), nil
+			{
+				_, span := otel.Tracer(config.TraceName).Start(ctx, "get kv", trace.WithSpanKind(trace.SpanKindClient))
+				defer span.End()
+				ret, err := handler.getValueByRev(rev)
+				if err != nil {
+					span.RecordError(err)
+					span.SetStatus(codes.Error, err.Error())
+					return "", err
+				}
+
+				return fmt.Sprintf("The value is %s with the revision %s\n", ret, rev.String()), nil
+			}
 		}
 	}
 	return "", fmt.Errorf("the key is missing at the query %v", r.URL.Query())
@@ -289,12 +288,12 @@ func (handler *KeyValueHandler) deleteKV(w http.ResponseWriter, r *http.Request)
 			}
 		}
 
-    {
-  		_, span := otel.Tracer(config.TraceName).Start(ctx, "tombstone index")
-	  	defer span.End()
-		  handler.indexTree.Tombstone([]byte(key[0]), rev)
-    }
-    
+		{
+			_, span := otel.Tracer(config.TraceName).Start(ctx, "tombstone index")
+			defer span.End()
+			handler.indexTree.Tombstone([]byte(key[0]), rev)
+		}
+
 		return fmt.Sprintf("The key %s has been removed at %s\n", key, node.String()), err
 	}
 	return "", fmt.Errorf("the key is missing at the query %v", r.URL.Query())
