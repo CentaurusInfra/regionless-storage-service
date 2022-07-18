@@ -127,8 +127,7 @@ func (handler *KeyValueHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 
 func (handler *KeyValueHandler) getKV(w http.ResponseWriter, r *http.Request) (string, error) {
 	// tracing getkv op
-	tracer := otel.Tracer(config.TraceName)
-	ctx, span := tracer.Start(r.Context(), "getKV")
+	ctx, span := otel.Tracer(config.TraceName).Start(r.Context(), "getKV")
 	defer span.End()
 
 	key, ok := r.URL.Query()["key"]
@@ -166,8 +165,7 @@ func (handler *KeyValueHandler) getKV(w http.ResponseWriter, r *http.Request) (s
 
 func (handler *KeyValueHandler) createKV(w http.ResponseWriter, r *http.Request) (string, error) {
 	// tracing createkv op
-	tracer := otel.Tracer(config.TraceName)
-	ctx, rootSpan := tracer.Start(r.Context(), "createKV")
+	ctx, rootSpan := otel.Tracer(config.TraceName).Start(r.Context(), "createKV")
 	defer rootSpan.End()
 
 	rev := revision.GetGlobalIncreasingRevision()
@@ -217,8 +215,7 @@ func (handler *KeyValueHandler) createKV(w http.ResponseWriter, r *http.Request)
 
 func (handler *KeyValueHandler) deleteKV(w http.ResponseWriter, r *http.Request) (string, error) {
 	// tracing deletekv op
-	tracer := otel.Tracer(config.TraceName)
-	ctx, rootSpan := tracer.Start(r.Context(), "deleteKV")
+	ctx, rootSpan := otel.Tracer(config.TraceName).Start(r.Context(), "deleteKV")
 	defer rootSpan.End()
 
 	key, ok := r.URL.Query()["key"]
