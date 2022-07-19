@@ -39,7 +39,7 @@ install_redis_fn() {
 	sudo systemctl restart redis.service
 }
 
-prepare_host() {
+install_stuff() {
     host_ip=$1
     echo ">>>> preparing host $host_ip"    
     until ssh -i regionless_kv_service_key.pem -o "StrictHostKeyChecking no" ubuntu@$host_ip "$(typeset -f install_redis_fn); install_redis_fn"; do
@@ -52,11 +52,25 @@ validate_redis_up(){
     resp=`ssh -i regionless_kv_service_key.pem ubuntu@$host_ip "sudo redis-cli ping"`
     if [[ "$resp" == *"PONG"* ]]; then
 	      echo "Redis is ready on host ${host_public_ip}"
+	      ready_hosts+=$host_public_ip
     fi
 }
 
-create_ec2_instance
+provision_host() {
+    create_ec2_instance
+    install_stuff $host_public_ip
+    validate_redis_up
+}
 
-prepare_host $host_public_ip
-    
-validate_redis_up
+
+for i in {1..2}
+do
+   provision_host 
+done
+
+echo "the following host(s) have been provisioned:"
+for host in "${ready_hosts[@]}"
+do
+    echo "$host\n"
+done
+
