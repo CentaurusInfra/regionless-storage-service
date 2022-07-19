@@ -2,6 +2,6 @@
 
 [[ -n "${RKV_PID-}" ]] && sudo kill "${RKV_PID[@]}" 2>/dev/null
 
-go run cmd/http/main.go
+make
+./main &
 export RKV_PID=$!
-
