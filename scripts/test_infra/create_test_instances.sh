@@ -1,10 +1,6 @@
 #!/bin/bash
 
-AMI=ami-0b152cfd354c4c7a4
-SECURITY_GROUP=regionless_kv_service
-INSTANCE_TYPE=t2.micro
-KEY_NAME=regionless_kv_service_key
-INSTANCE_TAG=rkv_perf_test_pengdu
+source rkv_common.sh
 
 create_ec2_instance(){
     output=`aws ec2 run-instances --image-id $AMI \
@@ -33,7 +29,34 @@ create_ec2_instance(){
 		    --filters "Name=instance-state-name,Values=running" \
 		    --output text`
     done
-    echo ">>>> ${instance_id} is running"
+    host_public_ip=`aws ec2 describe-instances --instance-ids ${instance_id} --query 'Reservations[].Instances[].PublicIpAddress' --output=text`
+    echo ">>>> ${instance_id} is running, public ip is ${host_public_ip}"
+}
+
+install_redis_fn() {
+	sudo apt -y update > /tmp/apt.log 2>&1
+	sudo apt -y install redis-server > /tmp/apt.log 2>&1
+	sudo systemctl restart redis.service
+}
+
+prepare_host() {
+    host_ip=$1
+    echo ">>>> preparing host $host_ip"    
+    until ssh -i regionless_kv_service_key.pem -o "StrictHostKeyChecking no" ubuntu@$host_ip "$(typeset -f install_redis_fn); install_redis_fn"; do
+        echo ">>>> ssh not ready, retry in 3 sec"    
+        sleep 3
+    done
+}
+
+validate_redis_up(){
+    resp=`ssh -i regionless_kv_service_key.pem ubuntu@$host_ip "sudo redis-cli ping"`
+    if [[ "$resp" == *"PONG"* ]]; then
+	      echo "Redis is ready on host ${host_public_ip}"
+    fi
 }
 
 create_ec2_instance
+
+prepare_host $host_public_ip
+    
+validate_redis_up
