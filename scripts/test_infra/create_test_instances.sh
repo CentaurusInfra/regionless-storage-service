@@ -32,8 +32,8 @@ create_ec2_instance(){
 }
 
 install_redis_fn() {
-	sudo apt -y update > /tmp/apt.log 2>&1
-	sudo apt -y install redis-server > /tmp/apt.log 2>&1
+	sudo apt -y update >> /tmp/apt.log 2>&1
+	sudo apt -y install redis-server >> /tmp/apt.log 2>&1
 	sudo systemctl restart redis.service
 }
 
