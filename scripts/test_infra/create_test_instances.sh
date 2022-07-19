@@ -13,8 +13,6 @@ create_ec2_instance(){
 
     instance_id=`jq '.Instances[0].InstanceId' <<< $output`
     instance_id=`sed -e 's/^"//' -e 's/"$//' <<<"$instance_id"`	# remove double quote from string $instance_id
-    #launched_instance_ids+=($instance_id)
-    #echo "just launched: ${launched_instance_ids[@]}"
 
     [[ -z "$instance_id" ]] && { echo "invalid instance_id " ; exit 1; }
     echo ">>>> just launched: ${instance_id}"
@@ -62,15 +60,22 @@ provision_host() {
     validate_redis_up
 }
 
-
 for i in {1..2}
 do
-   provision_host 
+   log_name=$i.log
+   echo "provisioning redis host ${i}, see log ${log_name} for details"
+   provision_host > ${log_name} 2>&1 & 
 done
+wait
+
+hosts=`aws ec2 describe-instances --query 'Reservations[].Instances[].PublicIpAddress' \
+					--filters "Name=tag-value,Values=${INSTANCE_TAG}" "Name=instance-state-name,Values=running" \
+					--output=text`
+read -ra ready_hosts<<< "$hosts" # split by whitespaces
 
 echo "the following host(s) have been provisioned:"
 for host in "${ready_hosts[@]}"
 do
-    echo "$host\n"
+    echo "$host"
 done
 
