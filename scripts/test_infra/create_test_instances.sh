@@ -8,7 +8,7 @@ create_ec2_instance(){
 	    --instance-type $INSTANCE_TYPE \
 	    --key-name $KEY_NAME  \
 	    --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$INSTANCE_TAG}]" \
-	    #				--block-device-mappings 'DeviceName=/dev/sda1,Ebs={VolumeSize=32}' \
+	    				--block-device-mappings "DeviceName=/dev/sda1,Ebs={VolumeSize=${ROOT_DISK_VOLUME}}" \
 	    `	# end block 
 
     instance_id=`jq '.Instances[0].InstanceId' <<< $output`
@@ -78,4 +78,3 @@ for host in "${ready_hosts[@]}"
 do
     echo "$host"
 done
-
