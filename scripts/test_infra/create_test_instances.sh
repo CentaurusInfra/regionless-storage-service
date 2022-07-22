@@ -48,7 +48,7 @@ validate_redis_up(){
     resp=`ssh -i regionless_kv_service_key.pem ubuntu@$host_ip "sudo redis-cli ping"`
     if [[ "$resp" == *"PONG"* ]]; then
 	      echo "Redis is ready on host ${host_public_ip}"
-	      ready_hosts+=$host_public_ip
+	      ready_si_hosts+=$host_public_ip
     fi
 }
 
@@ -73,10 +73,10 @@ provision_storage_instances() {
     hosts=`aws ec2 describe-instances --query 'Reservations[].Instances[].PublicIpAddress' \
     					--filters "Name=tag-value,Values=${INSTANCE_TAG}" "Name=instance-state-name,Values=running" \
     					--output=text`
-    read -ra ready_hosts<<< "$hosts" # split by whitespaces
+    read -ra ready_si_hosts<<< "$hosts" # split by whitespaces
 
     echo "the following storage instance(s) have been provisioned:"
-    for host in "${ready_hosts[@]}"
+    for host in "${ready_si_hosts[@]}"
     do
         echo "$host"
     done
@@ -120,10 +120,10 @@ provision_rkv_instances() {
     hosts=`aws ec2 describe-instances --query 'Reservations[].Instances[].PublicIpAddress' \
     					--filters "Name=tag-value,Values=${INSTANCE_TAG}" "Name=instance-state-name,Values=running" \
     					--output=text`
-    read -ra ready_hosts<<< "$hosts" # split by whitespaces
+    read -ra ready_rkv_hosts<<< "$hosts" # split by whitespaces
 
     echo "the following rkv instance(s) have been provisioned:"
-    for host in "${ready_hosts[@]}"
+    for host in "${ready_rkv_hosts[@]}"
     do
         echo "$host"
     done
@@ -132,3 +132,9 @@ provision_rkv_instances() {
 provision_storage_instances
 
 provision_rkv_instances
+    
+echo "the following storage instance(s) have been provisioned:"
+for host in "${ready_si_hosts[@]}"
+do
+	echo "$host"
+done
