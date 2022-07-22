@@ -1,0 +1,34 @@
+set -u
+
+## aws ec2 key pair name
+## e.g. KEY_NAME=hwchen01
+: $KEY_NAME
+: $KEY_FILE     #~/.ssh/aws-hwchen01.pem
+
+export KEY_NAME KEY_FILE
+
+## common to lab
+export SECURITY_GROUP=regionless_kv_service
+export LAB_TAG=rkv_perf_lab                #todo: use it to tag all vms of perf lab
+
+## of redis backends
+
+## of rkv service
+export RKV_AMI=ami-0bf8f78223ea6f3f6       #hw-ami-rkv-test2
+export RKV_INSTANCE_TYPE=t2.micro
+export RKV_ROOT_DISK_VOLUME=32
+export RKV_VM_NAME=hw-rkv-lab-rkv
+
+## of jaeger server
+export JAEGER_AMI=ami-0f501c5343cd5d65a    #hw-ami-jaeger5
+export JAEGER_INSTANCE_TYPE=t2.micro
+export JAEGER_ROOT_DISK_VOLUME=32
+export JAEGER_VM_NAME=hw-rkv-lab-jaeger
+
+## of prometheus server
+
+## of go-ycsb client
+export YCSB_AMI=ami-0aba4f5641629766e     #hw-ami-go-ycsb2
+export YCSB_INSTANCE_TYPE=t2.micro
+export YCSB_ROOT_DISK_VOLUME=16
+export YCSB_VM_NAME=hw-rkv-lab-ycsb

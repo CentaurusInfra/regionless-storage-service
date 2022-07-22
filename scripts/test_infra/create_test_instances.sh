@@ -46,7 +46,7 @@ configure_redis() {
     for host_ip in "${ready_si_hosts[@]}"
     do
         echo "configuring redis on host $host_ip"
-	ssh -i regionless_kv_service_key.pem ubuntu@$host_ip "$(typeset -f configure_redis_fn); configure_redis_fn" &
+	ssh -i $KEY_FILE ubuntu@$host_ip "$(typeset -f configure_redis_fn); configure_redis_fn" &
     done
     wait
 }
@@ -54,14 +54,14 @@ configure_redis() {
 install_storage_binaries() {
     host_ip=$1
     echo ">>>> preparing host $host_ip"    
-    until ssh -i regionless_kv_service_key.pem -o "StrictHostKeyChecking no" ubuntu@$host_ip "$(typeset -f install_redis_fn); install_redis_fn"; do
+    until ssh -i $KEY_FILE -o "StrictHostKeyChecking no" ubuntu@$host_ip "$(typeset -f install_redis_fn); install_redis_fn"; do
         echo ">>>> ssh not ready, retry in 3 sec"    
         sleep 3
     done
 }
 
 validate_redis_up(){
-    resp=`ssh -i regionless_kv_service_key.pem ubuntu@$host_ip "sudo redis-cli ping"`
+    resp=`ssh -i $KEY_FILE ubuntu@$host_ip "sudo redis-cli ping"`
     if [[ "$resp" == *"PONG"* ]]; then
 	      echo "Redis is ready on host ${host_public_ip}"
 	      ready_si_hosts+=$host_public_ip
@@ -110,17 +110,17 @@ install_rkv_fn() {
 setup_rkv_env() {
     host_ip=$1
     echo ">>>> copying repo to $host_ip"    
-    scp -r -i regionless_kv_service_key.pem -o "StrictHostKeyChecking no" $2 ubuntu@$host_ip:~
+    scp -r -i $KEY_FILE -o "StrictHostKeyChecking no" $2 ubuntu@$host_ip:~
 
     echo ">>>> setup rkv env on $host_ip"    
-    ssh -i regionless_kv_service_key.pem ubuntu@$host_ip "$(typeset -f install_rkv_fn); install_rkv_fn"
+    ssh -i $KEY_FILE ubuntu@$host_ip "$(typeset -f install_rkv_fn); install_rkv_fn"
 }
 
 provision_a_rkv_instance() {
-    repo_path=/root/go/src/github.com/regionless-storage-service
+    repo_path=$REPO_ROOT
     create_ec2_instance # this func assigns $host_public_ip
     
-    until ssh -i regionless_kv_service_key.pem -o "StrictHostKeyChecking no" ubuntu@$host_public_ip "sudo apt -y update >> /tmp/rkv.log 2>&1"; do
+    until ssh -i $KEY_FILE -o "StrictHostKeyChecking no" ubuntu@$host_public_ip "sudo apt -y update >> /tmp/rkv.log 2>&1"; do
         echo ">>>> ssh not ready, retry in 3 sec"    
         sleep 3
     done
@@ -176,9 +176,12 @@ setup_config() {
     for host in "${ready_rkv_hosts[@]}"
     do
         echo "copying config.json to rkv instance $host:/tmp/config.json. !!Note the file name change here!!"
-	scp -i regionless_kv_service_key.pem generated_config.json ubuntu@$host_ip:/tmp/config.json
+	scp -i $KEY_FILE generated_config.json ubuntu@$host_ip:/tmp/config.json
     done
 }
+
+SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+export REPO_ROOT=$( cd ${SCRIPTPATH}/../.. && pwd -P )
 
 provision_storage_instances
 
