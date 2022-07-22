@@ -132,7 +132,7 @@ provision_rkv_instances() {
 setup_config() {
     size=${#ready_si_hosts[@]}
     config=$(jq -n --arg hashing "rendezvous" \
-                  --arg bucketsize "$size" \
+                  --arg bucketsize "10" \
                   --arg storetype "reids" \
                   --arg replicanum "2" \
                   --argjson stores "[]" \
