@@ -1,7 +1,5 @@
 #!/bin/bash
 
-source rkv_common.sh
-
 create_ec2_instance(){
     output=`aws ec2 run-instances --image-id $AMI \
 	    --security-group-ids $SECURITY_GROUP \
@@ -37,7 +35,7 @@ install_redis_fn() {
 	sudo systemctl restart redis.service
 }
 
-install_stuff() {
+install_storage_binaries() {
     host_ip=$1
     echo ">>>> preparing host $host_ip"    
     until ssh -i regionless_kv_service_key.pem -o "StrictHostKeyChecking no" ubuntu@$host_ip "$(typeset -f install_redis_fn); install_redis_fn"; do
@@ -54,27 +52,70 @@ validate_redis_up(){
     fi
 }
 
-provision_host() {
-    create_ec2_instance
-    install_stuff $host_public_ip
+provision_a_storage_host() {
+    create_ec2_instance	# this func assigns $host_public_ip
+    install_storage_binaries $host_public_ip
     validate_redis_up
 }
 
-for i in {1..2}
-do
-   log_name=$i.log
-   echo "provisioning redis host ${i}, see log ${log_name} for details"
-   provision_host > ${log_name} 2>&1 & 
-done
-wait
+# create storage instances
+provision_storage_instances() {
+    source ./common_storage_instance.h
 
-hosts=`aws ec2 describe-instances --query 'Reservations[].Instances[].PublicIpAddress' \
-					--filters "Name=tag-value,Values=${INSTANCE_TAG}" "Name=instance-state-name,Values=running" \
-					--output=text`
-read -ra ready_hosts<<< "$hosts" # split by whitespaces
+    for i in $( eval echo {1..$NUM_OF_INSTANCE} ) 
+    do
+       log_name=$i.log
+       echo "ˁ˚ᴥ˚ˀ provisioning storage host ${i}, see log ${log_name} for details"
+       provision_a_storage_host > ${log_name} 2>&1 & 
+    done
+    wait
 
-echo "the following host(s) have been provisioned:"
-for host in "${ready_hosts[@]}"
-do
-    echo "$host"
-done
+    hosts=`aws ec2 describe-instances --query 'Reservations[].Instances[].PublicIpAddress' \
+    					--filters "Name=tag-value,Values=${INSTANCE_TAG}" "Name=instance-state-name,Values=running" \
+    					--output=text`
+    read -ra ready_hosts<<< "$hosts" # split by whitespaces
+
+    echo "the following storage instance(s) have been provisioned:"
+    for host in "${ready_hosts[@]}"
+    do
+        echo "$host"
+    done
+}
+
+install_rkv_binaries() {
+    host_ip=$1
+    echo ">>>> preparing host $host_ip"    
+    until ssh -i regionless_kv_service_key.pem -o "StrictHostKeyChecking no" ubuntu@$host_ip "$(typeset -f install_redis_fn); install_redis_fn"; do
+        echo ">>>> ssh not ready, retry in 3 sec"    
+        sleep 3
+    done
+}
+
+provision_a_rkv_host() {
+    create_ec2_instance # this func assigns $host_public_ip
+    #install_rkv_binaries $host_public_ip
+}
+
+# create rkv instances
+provision_rkv_instances() {
+    source ./common_rkv_instance.sh
+
+    log_name=rkv.log
+    echo "=^..^= provisioning rkv host, see log ${log_name} for details"
+    provision_a_rkv_host >${log_name} 2>&1
+    
+    hosts=`aws ec2 describe-instances --query 'Reservations[].Instances[].PublicIpAddress' \
+    					--filters "Name=tag-value,Values=${INSTANCE_TAG}" "Name=instance-state-name,Values=running" \
+    					--output=text`
+    read -ra ready_hosts<<< "$hosts" # split by whitespaces
+
+    echo "the following rkv instance(s) have been provisioned:"
+    for host in "${ready_hosts[@]}"
+    do
+        echo "$host"
+    done
+}
+
+provision_storage_instances
+
+provision_rkv_instances
