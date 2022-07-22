@@ -35,6 +35,21 @@ install_redis_fn() {
 	sudo systemctl restart redis.service
 }
 
+configure_redis_fn() {
+    sudo sed -i 's/^bind 127.0.0.1 ::1/#bind 127.0.0.1 ::1/' /etc/redis/redis.conf
+    sudo sudo systemctl restart redis
+}
+
+configure_redis() {
+    echo ${ready_si_hosts}
+    for host_ip in "${ready_si_hosts[@]}"
+    do
+        echo "configuring redis on host $host_ip"
+	ssh -i regionless_kv_service_key.pem ubuntu@$host_ip "$(typeset -f configure_redis_fn); configure_redis_fn" &
+    done
+    wait
+}
+
 install_storage_binaries() {
     host_ip=$1
     echo ">>>> preparing host $host_ip"    
@@ -74,6 +89,8 @@ provision_storage_instances() {
     					--filters "Name=tag-value,Values=${INSTANCE_TAG}" "Name=instance-state-name,Values=running" \
     					--output=text`
     read -ra ready_si_hosts<<< "$hosts" # split by whitespaces
+    
+    configure_redis	# $ready_si_hosts is created just above 
 
     echo "the following storage instance(s) have been provisioned:"
     for host in "${ready_si_hosts[@]}"
@@ -132,9 +149,9 @@ provision_rkv_instances() {
 setup_config() {
     size=${#ready_si_hosts[@]}
     config=$(jq -n --arg hashing "rendezvous" \
-                  --arg bucketsize "10" \
+                  --argjson bucketsize 10 \
                   --arg storetype "reids" \
-                  --arg replicanum "2" \
+                  --argjson replicanum 2 \
                   --argjson stores "[]" \
 	          '{"ConsistentHash": $hashing, "BucketSize": $bucketsize, "ReplicaNum": $replicanum, "StoreType": $storetype, "Stores": $stores}'
     )
@@ -143,7 +160,7 @@ setup_config() {
     do
         inner=$(jq -n --arg name "si-$ip" \
     	    --arg host $ip \
-    	    --arg port "6379" \
+    	    --argjson port 6379 \
     	    '{"Name": $name, "Host": $host, "Port": $port}'
         )
         config="$(jq --argjson val "$inner" '.Stores += [$val]' <<< "$config")"
