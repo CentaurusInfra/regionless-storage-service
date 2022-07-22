@@ -60,7 +60,7 @@ provision_a_storage_instance() {
 
 # create storage instances
 provision_storage_instances() {
-    source ./common_storage_instance.h
+    source ./common_storage_instance.sh
 
     for i in $( eval echo {1..$NUM_OF_INSTANCE} ) 
     do
