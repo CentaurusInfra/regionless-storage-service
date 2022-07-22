@@ -129,12 +129,41 @@ provision_rkv_instances() {
     done
 }
 
+setup_config() {
+    size=${#ready_si_hosts[@]}
+    config=$(jq -n --arg hashing "rendezvous" \
+                  --arg bucketsize "$size" \
+                  --arg storetype "reids" \
+                  --arg replicanum "2" \
+                  --argjson stores "[]" \
+	          '{"ConsistentHash": $hashing, "BucketSize": $bucketsize, "ReplicaNum": $replicanum, "StoreType": $storetype, "Stores": $stores}'
+    )
+
+    for ip in "${ready_si_hosts[@]}"
+    do
+        inner=$(jq -n --arg name "si-$ip" \
+    	    --arg host $ip \
+    	    --arg port "6379" \
+    	    '{"Name": $name, "Host": $host, "Port": $port}'
+        )
+        config="$(jq --argjson val "$inner" '.Stores += [$val]' <<< "$config")"
+    done
+
+    config_file_name=generated_config.json
+    echo $config > $config_file_name 
+
+    echo "config file created:"
+    jq . generated_config.json 
+    
+    for host in "${ready_rkv_hosts[@]}"
+    do
+        echo "copying config.json to rkv instance $host:/tmp/config.json. !!Note the file name change here!!"
+	scp -i regionless_kv_service_key.pem generated_config.json ubuntu@$host_ip:/tmp/config.json
+    done
+}
+
 provision_storage_instances
 
 provision_rkv_instances
     
-echo "the following storage instance(s) have been provisioned:"
-for host in "${ready_si_hosts[@]}"
-do
-	echo "$host"
-done
+setup_config
