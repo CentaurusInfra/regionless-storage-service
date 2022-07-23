@@ -151,7 +151,7 @@ setup_config() {
     size=${#ready_si_hosts[@]}
     config=$(jq -n --arg hashing "rendezvous" \
                   --argjson bucketsize 10 \
-                  --arg storetype "reids" \
+                  --arg storetype "redis" \
                   --argjson replicanum 2 \
                   --argjson stores "[]" \
 	          '{"ConsistentHash": $hashing, "BucketSize": $bucketsize, "ReplicaNum": $replicanum, "StoreType": $storetype, "Stores": $stores}'
