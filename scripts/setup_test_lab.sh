@@ -52,7 +52,7 @@ print_usage() {
 
 if [ -z ${NAME_TAG:=} ] || [ -z ${KEY_NAME:=} ] || [ -z ${KEY_FILE:=} ]
 then
-    echo "=^..^= One of more env variable need to be defined"
+    echo "=^..^= One or more env variable need to be defined"
     print_usage
     echo "exited."
       exit 1
