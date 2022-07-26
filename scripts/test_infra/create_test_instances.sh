@@ -164,7 +164,8 @@ setup_rkv_env() {
 
 provision_a_rkv_instance() {
     repo_path=$REPO_ROOT
-    create_ec2_instance # this func assigns $host_public_ip
+    #${REGION_I} ${INSTANCE_TAG} ${INSTANCE_TYPE_I} ${PORT_I}
+    create_ec2_instance ${RKV_REGION} ${INSTANCE_TAG} ${INSTANCE_TYPE}	# this func assigns value $host_public_ip
     
     until ssh -i $KEY_FILE -o "StrictHostKeyChecking no" ubuntu@$host_public_ip "sudo apt -y update >> /tmp/rkv.log 2>&1"; do
         echo "ssh not ready, retry in 3 sec"    
@@ -177,7 +178,7 @@ provision_a_rkv_instance() {
 provision_rkv_instances() {
     source ./common_rkv_instance.sh
 
-    log_name=rkv.log
+    local log_name=rkv.log
     echo "=^..^= provisioning rkv host, see log ${log_name} for details"
     provision_a_rkv_instance >${log_name} 2>&1
     
@@ -189,7 +190,7 @@ provision_rkv_instances() {
     print_green "the following rkv instance(s) have been provisioned:"
     for host in "${ready_rkv_hosts[@]}"
     do
-        print_light_green "$host"
+        print_light_green "$host in region $RKV_REGION"
     done
 }
 
@@ -235,6 +236,6 @@ read_region_configs # read ssh key configs
 
 provision_storage_instances
 
-#provision_rkv_instances
+provision_rkv_instances
     
 #setup_config
