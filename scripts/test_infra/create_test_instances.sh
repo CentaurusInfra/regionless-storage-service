@@ -1,13 +1,18 @@
 #!/bin/bash
 
 source ../common.sh
+source ./multi_region_config.sh 
 
 create_ec2_instance(){
-    output=`aws ec2 run-instances --image-id $AMI \
+    local ami=$(find_ami $1)
+    local k_name=$(find_key_name $1)
+
+    output=`aws ec2 run-instances --region $1 \
+	    --image-id $ami \
 	    --security-group-ids $SECURITY_GROUP \
-	    --instance-type $INSTANCE_TYPE \
-	    --key-name $KEY_NAME  \
-	    --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$INSTANCE_TAG}]" \
+	    --instance-type $3\
+	    --key-name $k_name  \
+	    --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$2}]" \
 	    				--block-device-mappings "DeviceName=/dev/sda1,Ebs={VolumeSize=${ROOT_DISK_VOLUME}}" \
 	    `	# end block 
 
@@ -15,19 +20,21 @@ create_ec2_instance(){
     instance_id=`sed -e 's/^"//' -e 's/"$//' <<<"$instance_id"`	# remove double quote from string $instance_id
 
     [[ -z "$instance_id" ]] && { echo "invalid instance_id " ; exit 1; }
-    echo "just launched: ${instance_id}"
+    echo "just launched: ${instance_id} in region $1"
     
     state=""
     while [[ "$state" == "" ]]
     do
 	    echo "waiting for 3 sec"
 	    sleep 3 
-	    state=`aws ec2 describe-instances \
+	    state=`aws ec2 describe-instances --region $1 \
 		    --instance-ids $instance_id \
 		    --filters "Name=instance-state-name,Values=running" \
 		    --output text`
     done
-    host_public_ip=`aws ec2 describe-instances --instance-ids ${instance_id} --query 'Reservations[].Instances[].PublicIpAddress' --output=text`
+    host_public_ip=`aws ec2 describe-instances --region $1 \
+			--instance-ids ${instance_id} \
+			--query 'Reservations[].Instances[].PublicIpAddress' --output=text`
     echo "${instance_id} is running, public ip is ${host_public_ip}"
 }
 
@@ -44,25 +51,29 @@ configure_redis_fn() {
 }
 
 configure_redis() {
+    local k_file=$(find_key_file $1)
     for host_ip in "${ready_si_hosts[@]}"
     do
-        echo "configuring redis on host $host_ip"
-	ssh -i $KEY_FILE ubuntu@$host_ip "$(typeset -f configure_redis_fn); configure_redis_fn" &
+        echo "configuring redis on host $host_ip in region $1"
+	ssh -i $k_file ubuntu@$host_ip "$(typeset -f configure_redis_fn); configure_redis_fn" &
     done
     wait
 }
 
 install_storage_binaries() {
-    host_ip=$1
-    echo "preparing host $host_ip"    
-    until ssh -i $KEY_FILE -o "StrictHostKeyChecking no" ubuntu@$host_ip "$(typeset -f install_redis_fn); install_redis_fn"; do
+    local k_file=$(find_key_file $1)
+    local host_ip=$2
+    echo "installing storage binaries on host $host_ip in region $1 using key $k_file"    
+    until ssh -i $k_file -o "StrictHostKeyChecking no" ubuntu@$host_ip "$(typeset -f install_redis_fn); install_redis_fn"; do
         echo "ssh not ready, retry in 3 sec"    
         sleep 3
     done
 }
 
 validate_redis_up(){
-    resp=`ssh -i $KEY_FILE ubuntu@$host_ip "sudo redis-cli ping"`
+    local k_file=$(find_key_file $1)
+    local host_ip=$2
+    resp=`ssh -i $k_file ubuntu@$host_ip "sudo redis-cli ping"`
     if [[ "$resp" == *"PONG"* ]]; then
 	      echo "redis is ready on host ${host_public_ip}"
 	      ready_si_hosts+=$host_public_ip
@@ -70,36 +81,49 @@ validate_redis_up(){
 }
 
 provision_a_storage_instance() {
-    create_ec2_instance	# this func assigns $host_public_ip
-    install_storage_binaries $host_public_ip
-    validate_redis_up
+    #${REGION_I} ${INSTANCE_TAG} ${INSTANCE_TYPE_I} ${PORT_I}
+    create_ec2_instance $1 $2 $3	# this func assigns value $host_public_ip
+    install_storage_binaries $1 $host_public_ip
+    validate_redis_up $1 $host_public_ip
 }
 
 # create storage instances
 provision_storage_instances() {
     source ./common_storage_instance.sh
 
-    for i in $( eval echo {1..$NUM_OF_INSTANCE} ) 
-    do
-       log_name=$i.log
-       echo "ˁ˚ᴥ˚ˀ provisioning storage host ${i}, see log ${log_name} for details"
-       provision_a_storage_instance > ${log_name} 2>&1 & 
+    INSTANCE_IDX=0
+    for i in "${!StoreRegions[@]}"; do 
+        REGION_I=${StoreRegions[$i]}
+        COUNT_I=${StoreCounts[$i]}
+        NAME_PREFIX_I=${StoreNamePrefixs[$i]}
+        INSTANCE_TYPE_I=${StoreInstanceTypes[$i]}
+        PORT_I=${StorePorts[$i]}
+        LOG_NAME=si.log
+
+	ready_si_hosts=()
+        for (( j=1; j<=$COUNT_I; j++ ))
+        do 
+            INSTANCE_TAG="${NAME_TAG}-${NAME_PREFIX_I}-${INSTANCE_IDX}"
+            echo "ˁ˚ᴥ˚ˀ provisioning storage host ${INSTANCE_TAG} in region ${REGION_I}, see log ${LOG_NAME} for details"
+	    provision_a_storage_instance ${REGION_I} ${INSTANCE_TAG} ${INSTANCE_TYPE_I} ${PORT_I} >> ${LOG_NAME} 2>&1 & 
+            ((INSTANCE_IDX+=1))
+        done
+
     done
     wait
-
-    hosts=`aws ec2 describe-instances --query 'Reservations[].Instances[].PublicIpAddress' \
-    					--filters "Name=tag-value,Values=${INSTANCE_TAG}" "Name=instance-state-name,Values=running" \
-    					--output=text`
-    read -ra ready_si_hosts<<< "$hosts" # split by whitespaces
     
-    configure_redis	# $ready_si_hosts is created just above 
+    #hosts=`aws ec2 describe-instances --region ${REGION_I} --query 'Reservations[].Instances[].PublicIpAddress' \
+	    #					--filters "Name=tag-value,Values=${INSTANCE_TAG}" "Name=instance-state-name,Values=running" \
+	    #				--output=text`
+    #read -ra ready_si_hosts<<< "$hosts" # split by whitespaces
+    #configure_redis	${REGION_I} # $ready_si_hosts is created just above 
 
-    print_green "the following storage instance(s) have been provisioned:" 
+    #print_green "the following storage instance(s) have been provisioned:" 
 
-    for host in "${ready_si_hosts[@]}"
-    do
-        print_light_green "$host"
-    done
+    #for host in "${ready_si_hosts[@]}"
+    #do
+    #    print_light_green "$host"
+    #done
 }
 
 install_rkv_fn() {
@@ -185,8 +209,12 @@ setup_config() {
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 export REPO_ROOT=$( cd ${SCRIPTPATH}/../.. && pwd -P )
 
+read_stores # read store configs
+
+read_region_configs # read ssh key configs
+
 provision_storage_instances
 
-provision_rkv_instances
+#provision_rkv_instances
     
-setup_config
+#setup_config

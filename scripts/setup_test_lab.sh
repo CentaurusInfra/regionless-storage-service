@@ -72,6 +72,10 @@ cat splash.art
 # we will make a few changes to rkv config and start its service later
 cd test_infra && ./create_test_instances.sh
 
+####### REMOVE
+exit 0
+##############
+
 #
 ## start jaeger & ycsb vm 
 ## todo: start prometheus server
