@@ -51,10 +51,12 @@ configure_redis_fn() {
 }
 
 configure_redis() {
-    local k_file=$(find_key_file $1)
-    for host_ip in "${ready_si_hosts[@]}"
-    do
-        echo "configuring redis on host $host_ip in region $1"
+    for i in "${!ready_si_hosts[@]}"; do
+        local r=${ready_si_regions[$i]}
+	local k_file=$(find_key_file $r)
+        local host_ip=${ready_si_hosts[$i]}
+
+        echo "configuring redis on host $host_ip in region $r"
 	ssh -i $k_file ubuntu@$host_ip "$(typeset -f configure_redis_fn); configure_redis_fn" &
     done
     wait
@@ -112,8 +114,6 @@ provision_storage_instances() {
     done
     wait
     
-    #read -ra ready_si_hosts<<< "$hosts" # split by whitespaces
-    #configure_redis	${REGION_I} # $ready_si_hosts is created just above 
     INSTANCE_IDX=0
     for i in "${!StoreRegions[@]}"; do 
         REGION_I=${StoreRegions[$i]}
@@ -127,12 +127,16 @@ provision_storage_instances() {
             local host=`aws ec2 describe-instances --region ${REGION_I} --query 'Reservations[].Instances[].PublicIpAddress' \
 	   					--filters "Name=tag-value,Values=${INSTANCE_TAG}" "Name=instance-state-name,Values=running" \
 	    					--output=text`
-            ((INSTANCE_IDX+=1))
             ready_si_hosts+=($host)
             ready_si_regions+=($REGION_I)
+	    
+            
+	    ((INSTANCE_IDX+=1))
         done
     done
-
+	
+    configure_redis
+    
     print_green "the following storage instance(s) have been provisioned:" 
 
     for i in "${!ready_si_hosts[@]}"; do
