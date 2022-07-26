@@ -31,6 +31,7 @@ export RKV_VM_NAME=${NAME_TAG}-rkv-lab-rkv
 export RKV_REGION=us-west-2
 
 ## of jaeger server
+export RKV_REGION=us-west-2
 export JAEGER_AMI=ami-0f501c5343cd5d65a    #hw-ami-jaeger5
 export JAEGER_INSTANCE_TYPE=t2.micro
 export JAEGER_ROOT_DISK_VOLUME=32
@@ -39,6 +40,7 @@ export JAEGER_VM_NAME=${NAME_TAG}-rkv-lab-jaeger
 ## of prometheus server
 
 ## of go-ycsb client
+export YCSB_REGION=us-west-2
 export YCSB_AMI=ami-0aba4f5641629766e     #hw-ami-go-ycsb2
 export YCSB_INSTANCE_TYPE=t2.micro
 export YCSB_ROOT_DISK_VOLUME=16

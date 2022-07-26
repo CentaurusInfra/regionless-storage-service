@@ -15,6 +15,7 @@ config_ycsb_fn() {
 
 create_jaeger_vm() {
     jaeger_vmid=$(aws ec2 run-instances \
+      --region ${JAEGER_REGION} \
       --image-id ${JAEGER_AMI} \
       --security-groups ${SECURITY_GROUP} \
       --instance-type ${JAEGER_INSTANCE_TYPE} \
@@ -28,6 +29,7 @@ create_jaeger_vm() {
 
 create_ycsb_vm() {
     ycsb_vmid=$(aws ec2 run-instances \
+      --region ${YCSB_REGION} \
       --image-id ${YCSB_AMI} \
       --security-groups ${SECURITY_GROUP} \
       --instance-type ${YCSB_INSTANCE_TYPE} \
@@ -71,10 +73,6 @@ cat splash.art
 #
 # we will make a few changes to rkv config and start its service later
 cd test_infra && ./create_test_instances.sh
-
-####### REMOVE
-exit 0
-##############
 
 #
 ## start jaeger & ycsb vm 

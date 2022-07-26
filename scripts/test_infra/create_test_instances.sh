@@ -127,6 +127,7 @@ provision_storage_instances() {
             local host=`aws ec2 describe-instances --region ${REGION_I} --query 'Reservations[].Instances[].PublicIpAddress' \
 	   					--filters "Name=tag-value,Values=${INSTANCE_TAG}" "Name=instance-state-name,Values=running" \
 	    					--output=text`
+            ready_si_tags+=($INSTANCE_TAG)
             ready_si_hosts+=($host)
             ready_si_regions+=($REGION_I)
 	    
@@ -147,7 +148,7 @@ provision_storage_instances() {
 }
 
 install_rkv_fn() {
-    sudo /home/ubuntu/regionless-storage-service/scripts/setup_env.sh >> /tmp/rkv.log 2>&1
+    /home/ubuntu/regionless-storage-service/scripts/setup_env.sh >> /tmp/rkv.log 2>&1
     cd /home/ubuntu/regionless-storage-service
     source ~/.profile
     make 
@@ -158,7 +159,7 @@ setup_rkv_env() {
     echo "copying repo to $host_ip"    
     scp -r -i $KEY_FILE -o "StrictHostKeyChecking no" $2 ubuntu@$host_ip:~
 
-    echo "setup rkv env on $host_ip"    
+    echo "setting up rkv env on $host_ip"    
     ssh -i $KEY_FILE ubuntu@$host_ip "$(typeset -f install_rkv_fn); install_rkv_fn"
 }
 
@@ -182,7 +183,7 @@ provision_rkv_instances() {
     echo "=^..^= provisioning rkv host, see log ${log_name} for details"
     provision_a_rkv_instance >${log_name} 2>&1
     
-    hosts=`aws ec2 describe-instances --query 'Reservations[].Instances[].PublicIpAddress' \
+    hosts=`aws ec2 describe-instances --region ${RKV_REGION} --query 'Reservations[].Instances[].PublicIpAddress' \
     					--filters "Name=tag-value,Values=${INSTANCE_TAG}" "Name=instance-state-name,Values=running" \
     					--output=text`
     read -ra ready_rkv_hosts<<< "$hosts" # split by whitespaces
@@ -204,9 +205,10 @@ setup_config() {
 	          '{"ConsistentHash": $hashing, "BucketSize": $bucketsize, "ReplicaNum": $replicanum, "StoreType": $storetype, "Stores": $stores}'
     )
 
-    for ip in "${ready_si_hosts[@]}"
-    do
-        inner=$(jq -n --arg name "si-$ip" \
+    for i in "${!ready_si_hosts[@]}"; do
+        local ip=${ready_si_hosts[$i]}
+        local t=${ready_si_tags[$i]}
+        inner=$(jq -n --arg name $t \
     	    --arg host $ip \
     	    --argjson port 6379 \
     	    '{"Name": $name, "Host": $host, "Port": $port}'
@@ -238,4 +240,4 @@ provision_storage_instances
 
 provision_rkv_instances
     
-#setup_config
+setup_config
