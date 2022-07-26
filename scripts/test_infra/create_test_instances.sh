@@ -75,8 +75,9 @@ validate_redis_up(){
     local host_ip=$2
     resp=`ssh -i $k_file ubuntu@$host_ip "sudo redis-cli ping"`
     if [[ "$resp" == *"PONG"* ]]; then
-	      echo "redis is ready on host ${host_public_ip}"
-	      ready_si_hosts+=$host_public_ip
+        echo "redis is ready on host ${host_public_ip} in region $1"
+    else
+        echo "redis is NOT ready on host ${host_public_ip} in region $1"
     fi
 }
 
@@ -100,7 +101,6 @@ provision_storage_instances() {
         PORT_I=${StorePorts[$i]}
         LOG_NAME=si.log
 
-	ready_si_hosts=()
         for (( j=1; j<=$COUNT_I; j++ ))
         do 
             INSTANCE_TAG="${NAME_TAG}-${NAME_PREFIX_I}-${INSTANCE_IDX}"
@@ -112,18 +112,34 @@ provision_storage_instances() {
     done
     wait
     
-    #hosts=`aws ec2 describe-instances --region ${REGION_I} --query 'Reservations[].Instances[].PublicIpAddress' \
-	    #					--filters "Name=tag-value,Values=${INSTANCE_TAG}" "Name=instance-state-name,Values=running" \
-	    #				--output=text`
     #read -ra ready_si_hosts<<< "$hosts" # split by whitespaces
     #configure_redis	${REGION_I} # $ready_si_hosts is created just above 
+    INSTANCE_IDX=0
+    for i in "${!StoreRegions[@]}"; do 
+        REGION_I=${StoreRegions[$i]}
+        COUNT_I=${StoreCounts[$i]}
+        NAME_PREFIX_I=${StoreNamePrefixs[$i]}
+        INSTANCE_TYPE_I=${StoreInstanceTypes[$i]}
 
-    #print_green "the following storage instance(s) have been provisioned:" 
+        for (( j=1; j<=$COUNT_I; j++ ))
+        do 
+            INSTANCE_TAG="${NAME_TAG}-${NAME_PREFIX_I}-${INSTANCE_IDX}"
+            local host=`aws ec2 describe-instances --region ${REGION_I} --query 'Reservations[].Instances[].PublicIpAddress' \
+	   					--filters "Name=tag-value,Values=${INSTANCE_TAG}" "Name=instance-state-name,Values=running" \
+	    					--output=text`
+            ((INSTANCE_IDX+=1))
+            ready_si_hosts+=($host)
+            ready_si_regions+=($REGION_I)
+        done
+    done
 
-    #for host in "${ready_si_hosts[@]}"
-    #do
-    #    print_light_green "$host"
-    #done
+    print_green "the following storage instance(s) have been provisioned:" 
+
+    for i in "${!ready_si_hosts[@]}"; do
+        local r=${ready_si_regions[$i]}
+        local h=${ready_si_hosts[$i]}
+        print_light_green "$h in region $r" 
+    done
 }
 
 install_rkv_fn() {
