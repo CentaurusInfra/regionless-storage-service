@@ -25,21 +25,21 @@
    ],
   "Stores": [
     {
-      "NamePrefix": "si",
+      "NamePrefix": "rkv-lab-si",
       "Region": "us-west-1",
       "Port": 6379,
       "Count": 1,
       "InstanceType": "t2.micro"
     },
     {
-      "NamePrefix": "si",
+      "NamePrefix": "rkv-lab-si",
       "Region": "us-west-2",
       "Port": 6379,
       "Count": 2,
       "InstanceType": "t2.micro" 
     },
     {
-      "NamePrefix": "si",
+      "NamePrefix": "rkv-lab-si",
       "Region": "us-west-1",
       "Port": 6379,
       "Count": 1,

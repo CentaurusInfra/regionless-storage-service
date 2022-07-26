@@ -31,7 +31,7 @@ export RKV_VM_NAME=${NAME_TAG}-rkv-lab-rkv
 export RKV_REGION=us-west-2
 
 ## of jaeger server
-export RKV_REGION=us-west-2
+export JAEGER_REGION=us-west-2
 export JAEGER_AMI=ami-0f501c5343cd5d65a    #hw-ami-jaeger5
 export JAEGER_INSTANCE_TYPE=t2.micro
 export JAEGER_ROOT_DISK_VOLUME=32

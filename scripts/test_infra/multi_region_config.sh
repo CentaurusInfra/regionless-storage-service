@@ -1,6 +1,6 @@
 #!/bin/bash
 
-file=../si_2_region.json
+file=../si_config.json
 
 read_region_configs() {
     readarray -t KeyStoreRegions < <(jq -r '.RegionConfigs[].Region' $file) 
