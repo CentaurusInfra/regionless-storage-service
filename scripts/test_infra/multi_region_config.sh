@@ -1,27 +1,25 @@
 #!/bin/bash
 
-file=../si_config.json
-
 read_region_configs() {
-    readarray -t KeyStoreRegions < <(jq -r '.RegionConfigs[].Region' $file) 
-    readarray -t KeyNames < <(jq -r '.RegionConfigs[].KeyName' $file) 
-    readarray -t KeyFiles < <(jq -r '.RegionConfigs[].FileName' $file) 
-    readarray -t AMIs < <(jq -r '.RegionConfigs[].AMI' $file) 
+    readarray -t KeyStoreRegions < <(jq -r '.RegionConfigs[].Region' ${SI_DEF_FILE}) 
+    readarray -t KeyNames < <(jq -r '.RegionConfigs[].KeyName' ${SI_DEF_FILE}) 
+    readarray -t KeyFiles < <(jq -r '.RegionConfigs[].FileName' ${SI_DEF_FILE}) 
+    readarray -t AMIs < <(jq -r '.RegionConfigs[].AMI' ${SI_DEF_FILE}) 
 }
 
 read_stores() {
-    readarray -t StoreRegions < <(jq -r '.Stores[].Region' $file) 
-    readarray -t StoreCounts < <(jq -r '.Stores[].Count' $file) 
-    readarray -t StorePorts < <(jq -r '.Stores[].Port' $file) 
-    readarray -t StoreInstanceTypes < <(jq -r '.Stores[].InstanceType' $file) 
-    readarray -t StoreNamePrefixs < <(jq -r '.Stores[].NamePrefix' $file) 
+    readarray -t StoreRegions < <(jq -r '.Stores[].Region' ${SI_DEF_FILE}) 
+    readarray -t StoreCounts < <(jq -r '.Stores[].Count' ${SI_DEF_FILE}) 
+    readarray -t StorePorts < <(jq -r '.Stores[].Port' ${SI_DEF_FILE}) 
+    readarray -t StoreInstanceTypes < <(jq -r '.Stores[].InstanceType' ${SI_DEF_FILE}) 
+    readarray -t StoreNamePrefixs < <(jq -r '.Stores[].NamePrefix' ${SI_DEF_FILE}) 
 }
 
 find_key_name() {
     local found=false
     local region_idx=0
-    for i in "${!StoreRegions[@]}"; do
-        local r=${StoreRegions[$i]}
+    for i in "${!KeyStoreRegions[@]}"; do
+        local r=${KeyStoreRegions[$i]}
 	if [ "$r" != "$1" ]; then 
 	    ((region_idx+=1))
 	else
@@ -39,8 +37,8 @@ find_key_name() {
 find_key_file() {
     local found=false
     local region_idx=0
-    for i in "${!StoreRegions[@]}"; do
-        local r=${StoreRegions[$i]}
+    for i in "${!KeyStoreRegions[@]}"; do
+        local r=${KeyStoreRegions[$i]}
 	if [ "$r" != "$1" ]; then 
 	    ((region_idx+=1))
 	else
@@ -58,8 +56,8 @@ find_key_file() {
 find_ami() {
     local found=false
     local region_idx=0
-    for i in "${!StoreRegions[@]}"; do
-        local r=${StoreRegions[$i]}
+    for i in "${!KeyStoreRegions[@]}"; do
+        local r=${KeyStoreRegions[$i]}
 	if [ "$r" != "$1" ]; then 
 	    ((region_idx+=1))
 	else
