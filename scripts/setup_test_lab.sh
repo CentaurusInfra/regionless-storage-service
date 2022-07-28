@@ -125,6 +125,7 @@ print_green "tests can be fired up against rkv service now"
 ## todo: run more workloads
 #
 echo "firing a test, log in /tmp/ycsb-a.log"
-ssh -i ${KEY_FILE} ubuntu@${ycsb_vmip} -o "StrictHostKeyChecking no" "cd work/go-ycsb && ./bin/go-ycsb load rkv -P workloads/workloada" > /tmp/ycsb-a.log 2>&1
+ssh -i ${KEY_FILE} ubuntu@${ycsb_vmip} -o "StrictHostKeyChecking no" "cd work/go-ycsb && ./bin/go-ycsb load rkv -P workloads/workloada" > /tmp/ycsb-load-a.log 2>&1
+ssh -i ${KEY_FILE} ubuntu@${ycsb_vmip} -o "StrictHostKeyChecking no" "cd work/go-ycsb && ./bin/go-ycsb run rkv -P workloads/workloada" > /tmp/ycsb-run-a.log 2>&1
 
 print_green "jaeger tracing at http://${jaeger_vmip}:16686"
