@@ -27,8 +27,8 @@
     {
       "NamePrefix": "rkv-lab-si",
       "Region": "us-west-2",
-      "Port": 6379,
-      "Count": 5,
+      "Port": 6666,
+      "Count": 3,
       "InstanceType": "t2.micro"
     }
   ]

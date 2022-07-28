@@ -47,6 +47,7 @@ install_redis_fn() {
 configure_redis_fn() {
     sudo sed -i 's/^bind 127.0.0.1 ::1/#bind 127.0.0.1 ::1/' /etc/redis/redis.conf
     sudo sed -i 's/protected-mode yes/protected-mode no/' /etc/redis/redis.conf
+    sudo sed -i 's/port 6379/port 6666/' /etc/redis/redis.conf
     sudo sudo systemctl restart redis
 }
 
@@ -210,7 +211,7 @@ setup_config() {
         local t=${ready_si_tags[$i]}
         inner=$(jq -n --arg name $t \
     	    --arg host $ip \
-    	    --argjson port 6379 \
+    	    --argjson port 6666 \
     	    '{"Name": $name, "Host": $host, "Port": $port}'
         )
         config="$(jq --argjson val "$inner" '.Stores += [$val]' <<< "$config")"
