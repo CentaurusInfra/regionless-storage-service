@@ -41,6 +41,9 @@ configure_redis_fn() {
     sudo sed -i 's/^bind 127.0.0.1 ::1/#bind 127.0.0.1 ::1/' /etc/redis/redis.conf
     sudo sed -i 's/protected-mode yes/protected-mode no/' /etc/redis/redis.conf
     sudo sed -i 's/port 6379/port 6666/' /etc/redis/redis.conf
+    sudo sed -i 's/^save \d*/# save /' /etc/redis/redis.conf
+    sudo sed -i 's/^#\W*save ""/save ""/' /etc/redis/redis.conf
+
     sudo sudo systemctl restart redis
 }
 
