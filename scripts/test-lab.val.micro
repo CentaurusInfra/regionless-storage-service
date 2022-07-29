@@ -21,10 +21,6 @@ export NUM_OF_SI=2
 export RKV_ROOT_DISK_VOLUME=32
 export SI_ROOT_DISK_VOLUME=32
 
-## instance size
-export SI_INSTANCE_TYPE=t2.micro 
-export SI_VM_NAME=${NAME_TAG}-rkv-lab-si
-
 ## rkv service
 export RKV_INSTANCE_TYPE=t2.micro 
 export RKV_AMI=ami-0bf8f78223ea6f3f6       #hw-ami-rkv-test2
@@ -41,7 +37,7 @@ export JAEGER_VM_NAME=${NAME_TAG}-rkv-lab-jaeger
 ## of prometheus server
 
 ## of go-ycsb client
-export YCSB_AMI=ami-02d2e1ae9f75eab06       #hw-ami-go-ycsb4
+export YCSB_AMI=ami-03fadfb192c131dc0 	    #hw-ami-go-ycsb5
 export YCSB_INSTANCE_TYPE=t2.micro
 export YCSB_ROOT_DISK_VOLUME=16
 export YCSB_VM_NAME=${NAME_TAG}-rkv-lab-ycsb
