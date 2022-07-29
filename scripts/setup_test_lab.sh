@@ -15,6 +15,7 @@ config_ycsb_fn() {
 
 create_jaeger_vm() {
     jaeger_vmid=$(aws ec2 run-instances \
+      --region ${JAEGER_REGION} \
       --image-id ${JAEGER_AMI} \
       --security-groups ${SECURITY_GROUP} \
       --instance-type ${JAEGER_INSTANCE_TYPE} \
@@ -28,6 +29,7 @@ create_jaeger_vm() {
 
 create_ycsb_vm() {
     ycsb_vmid=$(aws ec2 run-instances \
+      --region ${YCSB_REGION} \
       --image-id ${YCSB_AMI} \
       --security-groups ${SECURITY_GROUP} \
       --instance-type ${YCSB_INSTANCE_TYPE} \
@@ -47,12 +49,12 @@ print_usage() {
     echo "  export KEY_NAME=<your ec2 key name>"
     echo "  export KEY_FILE=<path-to-ec2-key-file>"
     echo "  export NAME_TAG=<name_tag to identify your resources>"
-    echo "  and then run ./setup-test-lab.sh"
+    echo "  and then run ./setup-test-lab.sh [optional: si definition file name, yes, name without path, 'scripts/si_def.json' if not provided"
 }
 
 if [ -z ${NAME_TAG:=} ] || [ -z ${KEY_NAME:=} ] || [ -z ${KEY_FILE:=} ]
 then
-    echo "=^..^= One of more env variable need to be defined"
+    echo "=^..^= One or more env variable need to be defined"
     print_usage
     echo "exited."
       exit 1
@@ -65,7 +67,16 @@ cat splash.art
 
 ## get the default values
 . ./test-lab.val
-    
+
+if [ $# -eq 0 ]
+then
+    echo "no argument given. using default storage config file $SI_DEF_FILE"
+else
+    SI_DEF_FILE="../$1"
+fi
+
+echo "using $SI_DEF_FILE as the storage instance definition"
+
 #
 # start redis vm instances and rkv server
 #
