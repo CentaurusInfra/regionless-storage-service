@@ -44,6 +44,17 @@ func main() {
 		otel.SetTracerProvider(traceProvider)
 	}
 
+	// for now, only support http protocol of jaeger service
+	jaegerEndpoint := *jaegerServer + "/api/traces"
+
+	traceProvider, err := tracerProvider(jaegerEndpoint)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	otel.SetTracerProvider(traceProvider)
+
+>>>>>>> roll back yaeger change in PR 33
 	conf, err := config.NewKVConfiguration("config.json")
 	if err != nil {
 		panic(fmt.Errorf("error setting gateway agent configuration: %v", err))
