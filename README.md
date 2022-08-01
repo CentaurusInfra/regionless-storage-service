@@ -1,75 +1,30 @@
-# regionless-storage-service
-Development Environment Setup
+# Regionless KV Service (RKV)
 
-The following steps are to be done as root
+## What Is RKV?
+RKV overcomes various limitations of ETCD such as storage capacity, and provides a "regionless" style storage service for large scale geo-distributed platform such as [Centaurus Arktos](https://github.com/CentaurusInfra/arktos). Versioned key-value pairs are managed (geo-partition, replicated with flexible consistency) and exposed for access with compatible APIs of ETCD such as range query and list-watch. 
 
-## 1. Clone the Repo
+## Highlighted Features
 
-```bash
-mkdir -p ~/go/src/github.com
-cd ~/go/src/github.com
-git clone https://github.com/CentaurusInfra/regionless-storage-service.git
-```
+<img width="70%" alt="image" src="https://user-images.githubusercontent.com/252020/182258636-8c0d7e09-da4e-4209-b9f0-3c4f11e50c53.png">
 
-##  2. Install Redis
+- Region-agnostic data access API
+- Partitioned and horrizontally scalable data storage with open backend store options
+- Replicated for HA and fast data access
+- Versioned Key-value pairs
+- CRUD API together with range query and list-watch
+- Supporting batch KV access (known as "txn" in ETCD)
+- Flexible (Configurable) replication consistency including (but not limited to) linearizability, sequential, "session", and eventual consistency
+- Smart caching for high performance data access
 
-```bash
-cd ~/go/src/github.com/regionless-storage-service
-./scripts/install_redis.sh
-```
-Please run the following command to ensure that the redis is running by seeing "active (running)" in green
+## Data Model
 
-```bash
-sudo systemctl status redis
-```
-Another alternative is to run a redis cli command as follows
-
-```bash
-redis-cli -h 127.0.0.1 -p 6379
-127.0.0.1:6379> PING
-PONG
-```
-
-## 3. Update the config.json
-
-Please visit the config.json to check the backend setup.
-```bash
-cat cmd/http/config.json
-{
-    "ConsistentHash": "rendezvous",
-    "BucketSize": 2,
-    "StoreType": "redis",
-    "Stores": [
-        {
-            "Name": "store1",
-            "Host": "127.0.0.1",
-            "Port": 6379
-        }
-    ]
-}
-```
-
-## 4. Install Development Environment
-
-The following command is to set up golang dev environemt
-```bash
-./script/setup_env.sh
-```
+<img width="60%" alt="image" src="https://user-images.githubusercontent.com/252020/182257499-e2bc8954-1519-46ab-baa5-9464f8b92eb9.png">
 
 
-## 5. Start Key Value Store
+## Architecture
 
-The following command is to set up a kv store
-```bash
-./script/start_kv.sh
-```
+<img width="80%" alt="image" src="https://user-images.githubusercontent.com/252020/174407480-ed632074-0daf-4bd0-9169-85519f46b3eb.png">
 
-## 6. Curl Commands for CRUD
+## Community Meetings 
 
-```bash
-curl -X POST -k http://localhost:8090/kv -d '{"key":"key1", "value": "v1"}'
-curl -X PUT -k http://localhost:8090/kv -d '{"key":"key1", "value": "v2"}
-curl -X DELETE http://localhost:8090/kv/key1
-curl -sS 'http://localhost:8090/kv?key=key1'
-curl -sS 'http://localhost:8090/kv?key=key1&fromRev=1'
-```
+Pacific Time: **Tuesday, 6:00PM PT (Weekly).** Please check our discussion page [here](https://github.com/CentaurusInfra/arktos/discussions/1422) for the latest meeting information. 
