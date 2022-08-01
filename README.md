@@ -25,6 +25,9 @@ RKV overcomes various limitations of ETCD such as storage capacity, and provides
 
 <img width="80%" alt="image" src="https://user-images.githubusercontent.com/252020/174407480-ed632074-0daf-4bd0-9169-85519f46b3eb.png">
 
+## Setup Guide
+A one-click deploy script is provided to provision a full set of running RKV with multiple backend storage instances from multiple regions. [Here](docs/setup/multi_region_setup.md) is the setup guide.
+
 ## Community Meetings 
 
 Pacific Time: **Tuesday, 6:00PM PT (Weekly).** Please check our discussion page [here](https://github.com/CentaurusInfra/arktos/discussions/1422) for the latest meeting information. 
