@@ -10,6 +10,8 @@ RKV has four major components:
 
 All 4 components can be configured and deployed on AWS with a single script.
 
+A [forked version of GO-YCSB](https://github.com/CentaurusInfra/go-ycsb) is used for benchmarking. [Jaeger](https://www.jaegertracing.io/) is used for profiling. 
+
 ### Configuration
 Two configurations files are used. And the following quick-and-easy scripts are provided to utilize sampler configuration files.
 
