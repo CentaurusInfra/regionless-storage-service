@@ -28,8 +28,8 @@
       "NamePrefix": "rkv-lab-si",
       "Region": "us-west-2",
       "Port": 6666,
-      "Count": 10,
-      "InstanceType": "t2.xlarge"
+      "Count": 2,
+      "InstanceType": "t2.2xlarge"
     }
   ]
 }
