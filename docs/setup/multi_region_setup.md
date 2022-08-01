@@ -92,7 +92,7 @@ Set the environment variables and then fire up the service. For example
 
 And here's a screenshot of what follows:
 
-<img width="60%" alt="image" src="https://user-images.githubusercontent.com/252020/182261678-666513c1-ce0e-40c1-8d37-7fe9a5d15c26.png">
+<img width="613" alt="image" src="https://user-images.githubusercontent.com/252020/182262687-4d7f2642-6a07-4ccc-a50b-01225670e551.png">
 
 Once the script is done, RKV will be up running and a quick YCSB test will be attempted. 
 
