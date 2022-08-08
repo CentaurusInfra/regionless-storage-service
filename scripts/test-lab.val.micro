@@ -8,7 +8,7 @@ set -u
 
 export KEY_NAME KEY_FILE NAME_TAG
 
-export SI_DEF_FILE=../si_def.json
+export SI_DEF_FILE=./test-lab.val
 
 ## common to lab
 export SECURITY_GROUP=regionless_kv_service
@@ -18,7 +18,6 @@ export LAB_TAG=rkv_perf_lab                #todo: use it to tag all vms of perf 
 export NUM_OF_SI=2 
 
 ## disk size
-export RKV_ROOT_DISK_VOLUME=32
 export SI_ROOT_DISK_VOLUME=32
 
 ## rkv service
@@ -26,6 +25,7 @@ export RKV_INSTANCE_TYPE=t2.micro
 export RKV_AMI=ami-0bf8f78223ea6f3f6       #hw-ami-rkv-test2
 export RKV_VM_NAME=${NAME_TAG}-rkv-lab-rkv
 export RKV_REGION=us-west-2
+export RKV_ROOT_DISK_VOLUME=32
 
 ## of jaeger server
 export JAEGER_REGION=us-west-2

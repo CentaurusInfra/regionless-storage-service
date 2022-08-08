@@ -30,15 +30,29 @@
       "NamePrefix": "rkv-lab-si",
       "Region": "us-west-1",
       "Port": 6666,
-      "Count": 2,
-      "InstanceType": "t2.large"
+      "Count": 1,
+      "InstanceType": "t2.2xlarge"
     },
     {
       "NamePrefix": "rkv-lab-si",
       "Region": "us-west-2",
       "Port": 6666,
-      "Count": 2,
-      "InstanceType": "t2.large"
+      "Count": 1,
+      "InstanceType": "t2.2xlarge"
+    },
+    {
+      "NamePrefix": "rkv-lab-si",
+      "Region": "us-east-1",
+      "Port": 6666,
+      "Count": 1,
+      "InstanceType": "t2.2xlarge"
+    },
+    {
+      "NamePrefix": "rkv-lab-si",
+      "Region": "us-east-2",
+      "Port": 6666,
+      "Count": 1,
+      "InstanceType": "t2.2xlarge"
     }
   ]
 }

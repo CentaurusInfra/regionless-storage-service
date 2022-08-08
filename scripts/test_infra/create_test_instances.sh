@@ -152,6 +152,7 @@ provision_storage_instances() {
 }
 
 install_rkv_fn() {
+    git clone https://github.com/CentaurusInfra/regionless-storage-service /home/ubuntu/regionless-storage-service >> /tmp/rkv.log 2>&1
     /home/ubuntu/regionless-storage-service/scripts/setup_env.sh >> /tmp/rkv.log 2>&1
     cd /home/ubuntu/regionless-storage-service
     source ~/.profile
@@ -160,10 +161,7 @@ install_rkv_fn() {
 
 setup_rkv_env() {
     host_ip=$1
-    echo "copying repo to $host_ip"    
-    scp -r -i $KEY_FILE -o "StrictHostKeyChecking no" $2 ubuntu@$host_ip:~
-
-    echo "setting up rkv env on $host_ip"    
+    echo "setting up rkv env on $host_ip"
     ssh -i $KEY_FILE ubuntu@$host_ip "$(typeset -f install_rkv_fn); install_rkv_fn"
 }
 
@@ -204,9 +202,10 @@ setup_config() {
     config=$(jq -n --arg hashing "rendezvous" \
                   --argjson bucketsize 10 \
                   --arg storetype "redis" \
+                  --argjson concurrent true \
                   --argjson replicanum 2 \
                   --argjson stores "[]" \
-	          '{"ConsistentHash": $hashing, "BucketSize": $bucketsize, "ReplicaNum": $replicanum, "StoreType": $storetype, "Stores": $stores}'
+	          '{"ConsistentHash": $hashing, "BucketSize": $bucketsize, "ReplicaNum": $replicanum, "StoreType": $storetype, "Concurrent": $concurrent, "Stores": $stores}'
     )
 
     for i in "${!ready_si_hosts[@]}"; do
