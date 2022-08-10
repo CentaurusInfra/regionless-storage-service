@@ -11,14 +11,13 @@ svc_cfg=test-lab.val.$2
 si_cfg=si_def_$1_region_$2.json
 
 if [[ -f $svc_cfg && -f $si_cfg ]]; then
+    svc_soft_link=test-lab.val
+    si_soft_link=si_def.json
     echo ">>> using $si_cfg (linked to $si_soft_link) and $svc_cfg (linked to $svc_soft_link)" 
 else
     echo ">>> Make sure both $si_cfg and $svc_cfg exist. It's nice to exist." 
     exit 0
 fi
-
-svc_soft_link=test-lab.val
-si_soft_link=si_def.json
 
 rm -f $svc_soft_link $si_soft_link 
 
