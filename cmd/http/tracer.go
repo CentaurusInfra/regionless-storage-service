@@ -7,9 +7,17 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.10.0"
+	oteltrace "go.opentelemetry.io/otel/trace"
+	"math/rand"
 )
 
 func tracerProvider(url string) (*trace.TracerProvider, error) {
+	// default sampler is the always-on
+	var sampler trace.Sampler
+	if config.TraceSamplingRate < 1.0 { // use the custom probability sampler to reduce the trace samples
+		sampler = trace.ParentBased(NewProbabilisticSampler(config.TraceSamplingRate))
+	}
+
 	// Create the Jaeger exporter
 	exp, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(url)))
 	if err != nil {
@@ -24,6 +32,39 @@ func tracerProvider(url string) (*trace.TracerProvider, error) {
 			semconv.ServiceNameKey.String(config.TraceName),
 			attribute.String("environment", config.TraceEnv),
 		)),
+		trace.WithSampler(sampler),
 	)
 	return tp, nil
 }
+
+type ProbabilisticSampler struct {
+	max      int
+	boundary int // values equal or greater than boundary would be dropped; 1/00 prob can be expressed as max=100, boundary=1
+}
+
+func (s ProbabilisticSampler) ShouldSample(p trace.SamplingParameters) trace.SamplingResult {
+	r := rand.Intn(s.max)
+	if r >= s.boundary {
+		return trace.SamplingResult{
+			Decision:   trace.Drop,
+			Tracestate: oteltrace.SpanContextFromContext(p.ParentContext).TraceState(),
+		}
+	}
+
+	return trace.SamplingResult{
+		Decision:   trace.RecordAndSample,
+		Tracestate: oteltrace.SpanContextFromContext(p.ParentContext).TraceState(),
+	}
+}
+
+func (s ProbabilisticSampler) Description() string {
+	return "probabilistic sampler"
+}
+
+func NewProbabilisticSampler(probability float64) *ProbabilisticSampler {
+	const max = 1000.0
+	boundary := max * probability
+	return &ProbabilisticSampler{max, int(boundary)}
+}
+
+var _ trace.Sampler = NewProbabilisticSampler(0.001)

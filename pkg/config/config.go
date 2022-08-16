@@ -17,7 +17,8 @@ const (
 )
 
 var (
-	TraceEnv string
+	TraceEnv          string
+	TraceSamplingRate float64
 )
 
 type KVConfiguration struct {
