@@ -8,7 +8,6 @@ import (
 	"path"
 	"runtime"
 	"strings"
-	"time"
 )
 
 const (
@@ -37,10 +36,6 @@ type KVStore struct {
 }
 
 func NewKVConfiguration(fileName string) (KVConfiguration, error) {
-	// For now, we use the current time as seed for each configuration. However, we might notice that
-	// it will give a deterministic sequence of pseudo-random numbers as the code shows according to
-	// its implementation https://github.com/golang/go/blob/master/src/math/rand/rng.go#L25
-	rand.Seed(time.Now().UnixNano())
 	_, runningfile, _, ok := runtime.Caller(1)
 	configuration := KVConfiguration{}
 	if !ok {
