@@ -7,7 +7,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -29,6 +28,7 @@ import (
 	"github.com/regionless-storage-service/pkg/partition/consistent"
 	"github.com/regionless-storage-service/pkg/piping"
 	"github.com/regionless-storage-service/pkg/revision"
+	"github.com/regionless-storage-service/pkg/tracer"
 )
 
 func main() {
@@ -43,13 +43,7 @@ func main() {
 	flag.Float64Var(&config.TraceSamplingRate, "trace-sampling-rate", 1.0, "optional sampling rate")
 	flag.Parse()
 	if len(config.TraceEnv) != 0 {
-		// for now, only support http protocol of jaeger service
-		jaegerEndpoint := *jaegerServer + "/api/traces"
-		traceProvider, err := tracerProvider(jaegerEndpoint)
-		if err != nil {
-			log.Fatal(err)
-		}
-		otel.SetTracerProvider(traceProvider)
+		tracer.SetupTracer(jaegerServer)
 	}
 
 	conf, err := config.NewKVConfiguration("config.json")

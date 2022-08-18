@@ -1,22 +1,34 @@
-package main
+package tracer
 
 import (
 	"github.com/regionless-storage-service/pkg/config"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/jaeger"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.10.0"
 	oteltrace "go.opentelemetry.io/otel/trace"
+	"log"
 	"math"
 	"math/rand"
 )
 
-func tracerProvider(url string) (*trace.TracerProvider, error) {
+func SetupTracer(jaegerServer *string) {
+	// for now, only support http protocol of jaeger service
+	jaegerEndpoint := *jaegerServer + "/api/traces"
+	traceProvider, err := newTracerProvider(jaegerEndpoint)
+	if err != nil {
+		log.Fatal(err)
+	}
+	otel.SetTracerProvider(traceProvider)
+}
+
+func newTracerProvider(url string) (*trace.TracerProvider, error) {
 	// default sampler is the always-on
 	var sampler trace.Sampler
 	if config.TraceSamplingRate < 1.0 { // use the custom probability sampler to reduce the trace samples
-		sampler = trace.ParentBased(NewProbabilisticSampler(config.TraceSamplingRate))
+		sampler = trace.ParentBased(newProbabilisticSampler(config.TraceSamplingRate))
 	}
 
 	// Create the Jaeger exporter
@@ -38,12 +50,12 @@ func tracerProvider(url string) (*trace.TracerProvider, error) {
 	return tp, nil
 }
 
-type ProbabilisticSampler struct {
+type probabilisticSampler struct {
 	max      int
 	boundary int // values equal or greater than boundary would be dropped; 1/00 prob can be expressed as max=100, boundary=1
 }
 
-func (s ProbabilisticSampler) ShouldSample(p trace.SamplingParameters) trace.SamplingResult {
+func (s probabilisticSampler) ShouldSample(p trace.SamplingParameters) trace.SamplingResult {
 	r := rand.Intn(s.max)
 	if r >= s.boundary {
 		return trace.SamplingResult{
@@ -58,13 +70,13 @@ func (s ProbabilisticSampler) ShouldSample(p trace.SamplingParameters) trace.Sam
 	}
 }
 
-func (s ProbabilisticSampler) Description() string {
+func (s probabilisticSampler) Description() string {
 	return "probabilistic sampler"
 }
 
-func NewProbabilisticSampler(probability float64) *ProbabilisticSampler {
+func newProbabilisticSampler(probability float64) *probabilisticSampler {
 	boundary := math.MaxInt32 * probability
-	return &ProbabilisticSampler{math.MaxInt32, int(boundary)}
+	return &probabilisticSampler{math.MaxInt32, int(boundary)}
 }
 
-var _ trace.Sampler = NewProbabilisticSampler(0.001)
+var _ trace.Sampler = newProbabilisticSampler(0.001)
