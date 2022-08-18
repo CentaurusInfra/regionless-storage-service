@@ -62,9 +62,9 @@ func (s ProbabilisticSampler) Description() string {
 }
 
 func NewProbabilisticSampler(probability float64) *ProbabilisticSampler {
-	const max = 1000.0
-	boundary := max * probability
-	return &ProbabilisticSampler{max, int(boundary)}
+	const MAX = 1000.0
+	boundary := MAX * probability
+	return &ProbabilisticSampler{MAX, int(boundary)}
 }
 
 var _ trace.Sampler = NewProbabilisticSampler(0.001)
