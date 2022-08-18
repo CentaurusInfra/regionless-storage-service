@@ -8,6 +8,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.10.0"
 	oteltrace "go.opentelemetry.io/otel/trace"
+	"math"
 	"math/rand"
 )
 
@@ -62,9 +63,8 @@ func (s ProbabilisticSampler) Description() string {
 }
 
 func NewProbabilisticSampler(probability float64) *ProbabilisticSampler {
-	const MAX = 1000.0
-	boundary := MAX * probability
-	return &ProbabilisticSampler{MAX, int(boundary)}
+	boundary := math.MaxInt32 * probability
+	return &ProbabilisticSampler{math.MaxInt32, int(boundary)}
 }
 
 var _ trace.Sampler = NewProbabilisticSampler(0.001)
