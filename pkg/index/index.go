@@ -31,7 +31,6 @@ func NewTreeIndex() Index {
 }
 
 // Put inserts a new index entry
-// for now, assuming no error yield within this method
 // todo: return applicable errors, if any
 func (ti *treeIndex) Put(ctx context.Context, key []byte, rev Revision) error {
 	// tracing indexing component - updating index
@@ -125,7 +124,7 @@ func (ti *treeIndex) Range(key, end []byte, atRev int64) (keys [][]byte, revs []
 }
 
 func (ti *treeIndex) Tombstone(ctx context.Context, key []byte, rev Revision) error {
-	// tracing indexing component - deleting index entry (as tombstone)
+	// tracing indexing component - mark index entry as tombstone
 	_, span := otel.Tracer(config.TraceName).Start(ctx, "tombstone index")
 	defer span.End()
 
@@ -146,7 +145,7 @@ func (ti *treeIndex) Tombstone(ctx context.Context, key []byte, rev Revision) er
 // at or after the given rev. The returned slice is sorted in the order
 // of Revision.
 func (ti *treeIndex) RangeSince(ctx context.Context, key, end []byte, rev int64) []Revision {
-	// tracing indexing component - ranged query of  index
+	// tracing indexing component - range query of  index
 	_, span := otel.Tracer(config.TraceName).Start(ctx, "rangesince kv")
 	defer span.End()
 
