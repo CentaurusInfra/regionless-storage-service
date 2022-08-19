@@ -148,11 +148,11 @@ func (handler *KeyValueHandler) getKV(w http.ResponseWriter, r *http.Request) (s
 				return "", err
 			}
 
-			{
-				_, span := otel.Tracer(config.TraceName).Start(ctx, "rangesince kv", trace.WithSpanKind(trace.SpanKindClient))
-				defer span.End()
+			revs := handler.indexTree.RangeSince(ctx, []byte(key[0]), nil, int64(fromRev))
 
-				revs := handler.indexTree.RangeSince([]byte(key[0]), nil, int64(fromRev))
+			{
+				_, span := otel.Tracer(config.TraceName).Start(ctx, "get kv", trace.WithSpanKind(trace.SpanKindClient))
+				defer span.End()
 				rets, err := handler.getValuesByRevs(ctx, revs)
 				if err != nil {
 					span.RecordError(err)
@@ -190,6 +190,7 @@ func (handler *KeyValueHandler) getKV(w http.ResponseWriter, r *http.Request) (s
 	}
 	return "", fmt.Errorf("the key is missing at the query %v", r.URL.Query())
 }
+
 func (handler *KeyValueHandler) getValueByRev(ctx context.Context, rev index.Revision) (string, error) {
 	ctx, span := otel.Tracer(config.TraceName).Start(ctx, "getValueByRev")
 	defer span.End()
@@ -256,10 +257,9 @@ func (handler *KeyValueHandler) createKV(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	{
-		_, span := otel.Tracer(config.TraceName).Start(ctx, "put index")
-		defer span.End()
-		handler.indexTree.Put([]byte(payload["key"]), newRev)
+	if err = handler.indexTree.Put(ctx, []byte(payload["key"]), newRev); err != nil {
+		// todo: cleanup writes on nodes
+		return "", err
 	}
 
 	return fmt.Sprintf("The key value pair (%s,%s) has been saved as revision %s at %s\n", payload["key"], payload["value"], strconv.FormatUint(rev, 10), node.String()), err
@@ -289,11 +289,7 @@ func (handler *KeyValueHandler) deleteKV(w http.ResponseWriter, r *http.Request)
 			}
 		}
 
-		{
-			_, span := otel.Tracer(config.TraceName).Start(ctx, "tombstone index")
-			defer span.End()
-			handler.indexTree.Tombstone([]byte(key[0]), index.NewRevision(int64(revision.GetGlobalIncreasingRevision()), rev.GetSub(), nil))
-		}
+		handler.indexTree.Tombstone(ctx, []byte(key[0]), index.NewRevision(int64(revision.GetGlobalIncreasingRevision()), rev.GetSub(), nil))
 
 		return fmt.Sprintf("The key %s has been removed at %s\n", key, rev.GetNodes()), err
 	}

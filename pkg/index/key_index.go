@@ -59,6 +59,7 @@ type keyIndex struct {
 	generations []generation
 }
 
+// todo: return error instead to panic
 // put puts a Revision to the keyIndex.
 func (ki *keyIndex) put(main int64, sub int64, nodes []string) {
 	rev := Revision{main: main, sub: sub, nodes: nodes}
