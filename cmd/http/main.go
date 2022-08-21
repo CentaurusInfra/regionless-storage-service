@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"go.opentelemetry.io/otel"
@@ -37,6 +36,7 @@ func main() {
 	// its implementation https://github.com/golang/go/blob/master/src/math/rand/rng.go#L25
 	rand.Seed(time.Now().UnixNano())
 
+	url := flag.String("url", ":8090", "proxy url")
 	// -trace-env="onebox-730", for instance, is a good name for 730 milestone, one-box rkv system
 	flag.StringVar(&config.TraceEnv, "trace-env", config.DefaultTraceEnv, "environment name displayed in tracing system")
 	jaegerServer := flag.String("jaeger-server", "http://localhost:14268", "jaeger server endpoint in form of http://host-ip:port")
@@ -52,19 +52,11 @@ func main() {
 	}
 	database.InitStorageInstancePool(conf.Stores)
 
-	url := flag.String("url", ":8090", "proxy url")
-	flag.Parse()
-	keyValueHandler := NewKeyValueHandler(conf)
-	if keyValueHandler == nil {
-		klog.Error("cannot run http server - http handler is null")
-	} else {
-		http.Handle("/kv", keyValueHandler)
-		klog.Fatal(http.ListenAndServe(*url, nil))
-	}
+	http.Handle("/kv", NewKeyValueHandler(conf))
+	klog.Fatal(http.ListenAndServe(*url, nil))
 }
 
 type KeyValueHandler struct {
-	mu        sync.Mutex
 	ch        consistent.ConsistentHashing
 	conf      config.KVConfiguration
 	indexTree index.Index
@@ -97,8 +89,6 @@ func NewKeyValueHandler(conf config.KVConfiguration) *KeyValueHandler {
 }
 
 func (handler *KeyValueHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	handler.mu.Lock()
-	defer handler.mu.Unlock()
 	if r.URL.Path != "/kv" {
 		http.NotFound(w, r)
 		return
