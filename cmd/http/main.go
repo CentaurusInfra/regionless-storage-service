@@ -36,7 +36,7 @@ func main() {
 	// its implementation https://github.com/golang/go/blob/master/src/math/rand/rng.go#L25
 	rand.Seed(time.Now().UnixNano())
 
-	url := flag.String("url", ":8090", "proxy url")
+	url := flag.String("url", ":8090", "rkv service endpoint")
 	// -trace-env="onebox-730", for instance, is a good name for 730 milestone, one-box rkv system
 	flag.StringVar(&config.TraceEnv, "trace-env", config.DefaultTraceEnv, "environment name displayed in tracing system")
 	jaegerServer := flag.String("jaeger-server", "http://localhost:14268", "jaeger server endpoint in form of http://host-ip:port")
