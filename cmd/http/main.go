@@ -54,7 +54,7 @@ func main() {
 
 	// create all backend storages
 	for _, store := range config.RKVConfig.Stores {
-		db, err := database.Factory(config.RKVConfig.StoreType, fmt.Sprintf("%s:%d", store.Host, store.Port))
+		db, err := database.Factory(config.RKVConfig.StoreType, &store)
 		if err != nil {
 			klog.Warningf("storage creation fails with $s: %v", store.Name, err)
 			continue

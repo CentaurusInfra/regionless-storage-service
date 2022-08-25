@@ -9,19 +9,22 @@
             "RegionType": "local",
             "Name": "store1",
             "Host": "127.0.0.1",
-            "Port": 6379
+            "Port": 6379,
+            "ArtificialLatencyMs": 1
         },
         {
             "RegionType": "neighbor",
             "Name": "store3",
             "Host": "172.31.9.140",
-            "Port": 6379
+            "Port": 6379,
+            "ArtificialLatencyMs": 40
         },
         {
             "RegionType": "remote",
             "Name": "store4",
             "Host": "172.31.12.96",
-            "Port": 6380
+            "Port": 6380,
+            "ArtificialLatencyMs": 100
         }
     ]
 }
