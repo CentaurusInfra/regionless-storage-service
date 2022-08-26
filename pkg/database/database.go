@@ -27,7 +27,7 @@ func Factory(databaseType string, store *config.KVStore) (Database, error) {
 		databaseUrl := fmt.Sprintf("%s:%d", store.Host, store.Port)
 		return NewMemDatabase(databaseUrl), nil
 	case "dummy+latency": // simulator database backend suitable for internal perf load test
-		return newLatencyDummyDatabase(time.Duration(store.ArtificialLatencyMs) * time.Millisecond), nil
+		return newLatencyDummyDatabase(time.Duration(store.ArtificialLatencyInMs) * time.Millisecond), nil
 	default:
 		return nil, &DatabaseNotImplementedError{databaseType}
 	}

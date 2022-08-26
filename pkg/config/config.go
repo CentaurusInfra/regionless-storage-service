@@ -32,11 +32,11 @@ type KVConfiguration struct {
 	Concurrent     bool
 }
 type KVStore struct {
-	RegionType          string
-	Name                string
-	Host                string
-	Port                int
-	ArtificialLatencyMs int
+	RegionType            string
+	Name                  string
+	Host                  string
+	Port                  int
+	ArtificialLatencyInMs int
 }
 
 func NewKVConfiguration(fileName string) (*KVConfiguration, error) {
