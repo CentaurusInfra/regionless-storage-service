@@ -60,7 +60,6 @@ type keyIndex struct {
 	generations []generation
 }
 
-// todo: return error instead to panic
 // put puts a Revision to the keyIndex.
 func (ki *keyIndex) put(main int64, sub int64, nodes []string) {
 	rev := Revision{main: main, sub: sub, nodes: nodes}
@@ -274,7 +273,7 @@ func (g *generation) walk(f func(rev Revision) bool) int {
 }
 
 func (g *generation) String() string {
-	return fmt.Sprintf("g: created[%d] ver[%d], revs %#v\n", g.created, g.ver, g.revs)
+	return fmt.Sprintf("g: created[%s] ver[%d], revs %#v\n", g.created, g.ver, g.revs)
 }
 
 func (a generation) equal(b generation) bool {
