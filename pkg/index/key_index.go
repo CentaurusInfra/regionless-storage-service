@@ -90,9 +90,9 @@ func (ki *keyIndex) put(main int64, sub int64, nodes []string) {
 	} else {
 		g.revs = append(g.revs, rev)
 	}
-	g.ver++
 
 	if rev.GreaterThan(ki.modified) {
+		g.ver++
 		ki.modified = rev
 	}
 }
