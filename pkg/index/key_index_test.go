@@ -3,6 +3,8 @@ package index
 import (
 	"reflect"
 	"testing"
+
+	"github.com/regionless-storage-service/pkg/partition/consistent"
 )
 
 func TestPut(t *testing.T) {
@@ -17,24 +19,24 @@ func TestPut(t *testing.T) {
 			name: "put newer rev",
 			index: keyIndex{
 				key:      []byte("testkey"),
-				modified: Revision{main: 99, sub: 0, nodes: []string{"node2"}},
+				modified: Revision{main: 99, sub: 0, nodes: []consistent.RkvNode{{Name: "node2"}}},
 				generations: []generation{{
 					ver:     2,
-					created: Revision{main: 98, sub: 0, nodes: []string{"node1"}},
+					created: Revision{main: 98, sub: 0, nodes: []consistent.RkvNode{{Name: "node1"}}},
 					revs: []Revision{
-						{main: 98, sub: 0, nodes: []string{"node1"}},
-						{main: 99, sub: 0, nodes: []string{"node2"}},
+						{main: 98, sub: 0, nodes: []consistent.RkvNode{{Name: "node1"}}},
+						{main: 99, sub: 0, nodes: []consistent.RkvNode{{Name: "node2"}}},
 					},
 				}}},
-			revToPut:         Revision{main: 100, sub: 0, nodes: []string{"node3"}},
-			expectedModified: Revision{main: 100, sub: 0, nodes: []string{"node3"}},
+			revToPut:         Revision{main: 100, sub: 0, nodes: []consistent.RkvNode{{Name: "node3"}}},
+			expectedModified: Revision{main: 100, sub: 0, nodes: []consistent.RkvNode{{Name: "node3"}}},
 			expectedGenerations: []generation{{
 				ver:     3,
-				created: Revision{main: 98, sub: 0, nodes: []string{"node1"}},
+				created: Revision{main: 98, sub: 0, nodes: []consistent.RkvNode{{Name: "node1"}}},
 				revs: []Revision{
-					{main: 98, sub: 0, nodes: []string{"node1"}},
-					{main: 99, sub: 0, nodes: []string{"node2"}},
-					{main: 100, sub: 0, nodes: []string{"node3"}},
+					{main: 98, sub: 0, nodes: []consistent.RkvNode{{Name: "node1"}}},
+					{main: 99, sub: 0, nodes: []consistent.RkvNode{{Name: "node2"}}},
+					{main: 100, sub: 0, nodes: []consistent.RkvNode{{Name: "node3"}}},
 				},
 			},
 			},
@@ -43,24 +45,24 @@ func TestPut(t *testing.T) {
 			name: "put stale rev",
 			index: keyIndex{
 				key:      []byte("testkey"),
-				modified: Revision{main: 100, sub: 0, nodes: []string{"node3"}},
+				modified: Revision{main: 100, sub: 0, nodes: []consistent.RkvNode{{Name: "node3"}}},
 				generations: []generation{{
 					ver:     2,
-					created: Revision{main: 98, sub: 0, nodes: []string{"node1"}},
+					created: Revision{main: 98, sub: 0, nodes: []consistent.RkvNode{{Name: "node1"}}},
 					revs: []Revision{
-						{main: 98, sub: 0, nodes: []string{"node1"}},
-						{main: 100, sub: 0, nodes: []string{"node3"}},
+						{main: 98, sub: 0, nodes: []consistent.RkvNode{{Name: "node1"}}},
+						{main: 100, sub: 0, nodes: []consistent.RkvNode{{Name: "node3"}}},
 					},
 				}}},
-			revToPut:         Revision{main: 99, sub: 0, nodes: []string{"node2"}},
-			expectedModified: Revision{main: 100, sub: 0, nodes: []string{"node3"}},
+			revToPut:         Revision{main: 99, sub: 0, nodes: []consistent.RkvNode{{Name: "node2"}}},
+			expectedModified: Revision{main: 100, sub: 0, nodes: []consistent.RkvNode{{Name: "node3"}}},
 			expectedGenerations: []generation{{
 				ver:     2,
-				created: Revision{main: 98, sub: 0, nodes: []string{"node1"}},
+				created: Revision{main: 98, sub: 0, nodes: []consistent.RkvNode{{Name: "node1"}}},
 				revs: []Revision{
-					{main: 98, sub: 0, nodes: []string{"node1"}},
-					{main: 99, sub: 0, nodes: []string{"node2"}},
-					{main: 100, sub: 0, nodes: []string{"node3"}},
+					{main: 98, sub: 0, nodes: []consistent.RkvNode{{Name: "node1"}}},
+					{main: 99, sub: 0, nodes: []consistent.RkvNode{{Name: "node2"}}},
+					{main: 100, sub: 0, nodes: []consistent.RkvNode{{Name: "node3"}}},
 				},
 			},
 			},

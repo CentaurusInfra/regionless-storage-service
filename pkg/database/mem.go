@@ -48,3 +48,10 @@ func (md MemDatabase) Delete(key string) error {
 func (md MemDatabase) Close() error {
 	return nil
 }
+
+func (md MemDatabase) Latency() time.Duration {
+	return 0
+}
+
+func (md MemDatabase) SetLatency(latency time.Duration) {
+}

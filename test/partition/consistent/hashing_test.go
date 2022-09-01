@@ -8,13 +8,13 @@ import (
 )
 
 func TestNewHashingWithLocalAndRemote(t *testing.T) {
-	localStores := map[constants.AvailabilityZone][]string{
-		constants.US_EAST_1A: {"1.1.3.4:1000", "1.2.3.4:1000"},
-		constants.US_EAST_2A: {"3.2.3.4:2000", "3.1.3.4:2000", "3.9.3.4:2000"},
-		constants.US_WEST_1A: {"6.2.3.4:3000", "6.2.3.4:3000"},
+	localStores := map[constants.AvailabilityZone][]consistent.RkvNode{
+		constants.US_EAST_1A: {{Name: "1.1.3.4:1000"}, {Name: "1.2.3.4:1000"}},
+		constants.US_EAST_2A: {{Name: "3.2.3.4:2000"}, {Name: "3.1.3.4:2000"}, {Name: "3.9.3.4:2000"}},
+		constants.US_WEST_1A: {{Name: "6.2.3.4:3000"}, {Name: "6.2.3.4:3000"}},
 	}
 
-	RemoteStores := []string{"9.2.3.4:1000", "9.2.3.4:2000"}
+	RemoteStores := []consistent.RkvNode{{Name: "9.2.3.4:1000"}, {Name: "9.2.3.4:2000"}}
 
 	h := consistent.NewHashingWithLocalAndRemote(localStores, 2, RemoteStores, 1)
 	l, r, _ := h.GetLocalAndRemoteNodes([]byte("1"))
@@ -47,13 +47,13 @@ func TestNewHashingWithLocalAndRemote(t *testing.T) {
 }
 
 func TestOneLocalStore(t *testing.T) {
-	localStores := map[constants.AvailabilityZone][]string{
-		constants.US_EAST_1A: {"1.1.3.4:1000", "1.2.3.4:1000"},
-		constants.US_EAST_2A: {"3.2.3.4:2000", "3.1.3.4:2000", "3.9.3.4:2000"},
-		constants.US_WEST_1A: {"6.2.3.4:3000", "6.2.3.4:3000"},
+	localStores := map[constants.AvailabilityZone][]consistent.RkvNode{
+		constants.US_EAST_1A: {{Name: "1.1.3.4:1000"}, {Name: "1.2.3.4:1000"}},
+		constants.US_EAST_2A: {{Name: "3.2.3.4:2000"}, {Name: "3.1.3.4:2000"}, {Name: "3.9.3.4:2000"}},
+		constants.US_WEST_1A: {{Name: "6.2.3.4:3000"}, {Name: "6.2.3.4:3000"}},
 	}
 
-	RemoteStores := []string{"9.2.3.4:1000", "9.2.3.4:2000"}
+	RemoteStores := []consistent.RkvNode{{Name: "9.2.3.4:1000"}, {Name: "9.2.3.4:2000"}}
 
 	h := consistent.NewHashingWithLocalAndRemote(localStores, 1, RemoteStores, 0)
 	l, r, _ := h.GetLocalAndRemoteNodes([]byte("1"))
@@ -72,13 +72,13 @@ func TestOneLocalStore(t *testing.T) {
 }
 
 func TestZeroRemoteStore(t *testing.T) {
-	localStores := map[constants.AvailabilityZone][]string{
-		constants.US_EAST_1A: {"1.1.3.4:1000", "1.2.3.4:1000"},
-		constants.US_EAST_2A: {"3.2.3.4:2000", "3.1.3.4:2000", "3.9.3.4:2000"},
-		constants.US_WEST_1A: {"6.2.3.4:3000", "6.2.3.4:3000"},
+	localStores := map[constants.AvailabilityZone][]consistent.RkvNode{
+		constants.US_EAST_1A: {{Name: "1.1.3.4:1000"}, {Name: "1.2.3.4:1000"}},
+		constants.US_EAST_2A: {{Name: "3.2.3.4:2000"}, {Name: "3.1.3.4:2000"}, {Name: "3.9.3.4:2000"}},
+		constants.US_WEST_1A: {{Name: "6.2.3.4:3000"}, {Name: "6.2.3.4:3000"}},
 	}
 
-	RemoteStores := []string{}
+	RemoteStores := []consistent.RkvNode{}
 
 	h := consistent.NewHashingWithLocalAndRemote(localStores, 1, RemoteStores, 1)
 	_, _, err := h.GetLocalAndRemoteNodes([]byte("1"))

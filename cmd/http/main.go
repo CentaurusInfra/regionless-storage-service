@@ -219,15 +219,7 @@ func (handler *KeyValueHandler) createKV(w http.ResponseWriter, r *http.Request)
 		klog.Errorf("failed to get all the nodes: %v", err)
 		return "", err
 	}
-
-	nodes := []string{}
-
-	for _, ln := range localNodes {
-		nodes = append(nodes, ln.String())
-	}
-	for _, rn := range remoteNodes {
-		nodes = append(nodes, rn.String())
-	}
+	nodes := append(localNodes, remoteNodes...)
 	newRev.SetNodes(nodes)
 	byteValue, err := ioutil.ReadAll(r.Body)
 
@@ -260,8 +252,11 @@ func (handler *KeyValueHandler) createKV(w http.ResponseWriter, r *http.Request)
 		// todo: cleanup writes on nodes
 		return "", err
 	}
-
-	return fmt.Sprintf("The key value pair (%s,%s) has been saved as revision %s at %s\n", payload["key"], payload["value"], strconv.FormatUint(rev, 10), strings.Join(nodes, ",")), err
+	savedStores := make([]string, 0)
+	for _, node := range nodes {
+		savedStores = append(savedStores, node.Name)
+	}
+	return fmt.Sprintf("The key value pair (%s,%s) has been saved as revision %s at %s\n", payload["key"], payload["value"], strconv.FormatUint(rev, 10), strings.Join(savedStores, ",")), err
 }
 
 func (handler *KeyValueHandler) deleteKV(w http.ResponseWriter, r *http.Request) (string, error) {

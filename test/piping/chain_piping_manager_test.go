@@ -6,12 +6,13 @@ import (
 
 	"github.com/regionless-storage-service/pkg/consistent"
 	"github.com/regionless-storage-service/pkg/index"
+	pc "github.com/regionless-storage-service/pkg/partition/consistent"
 	"github.com/regionless-storage-service/pkg/piping"
 )
 
 func TestWriteLINEARIZABLE(t *testing.T) {
 	cp := piping.NewChainPiping("mem", consistent.LINEARIZABLE, false)
-	rev := index.NewRevision(1, 0, []string{"0.0.0.0:0", "1.1.1.1:1", "2.2.2.2:2", "3.3.3.3:3"})
+	rev := index.NewRevision(1, 0, []pc.RkvNode{{Name: "0.0.0.0:0"}, {Name: "1.1.1.1:1"}, {Name: "2.2.2.2:2"}, {Name: "3.3.3.3:3"}})
 
 	if err := cp.Write(context.TODO(), rev, "v"); err != nil {
 		t.Fatalf("fail to write with the error %v", err)
@@ -20,7 +21,7 @@ func TestWriteLINEARIZABLE(t *testing.T) {
 
 func TestDeleteLINEARIZABLE(t *testing.T) {
 	cp := piping.NewChainPiping("mem", consistent.LINEARIZABLE, false)
-	rev := index.NewRevision(1, 0, []string{"0.0.0.0:0", "1.1.1.1:1", "2.2.2.2:2", "3.3.3.3:3"})
+	rev := index.NewRevision(1, 0, []pc.RkvNode{{Name: "0.0.0.0:0"}, {Name: "1.1.1.1:1"}, {Name: "2.2.2.2:2"}, {Name: "3.3.3.3:3"}})
 	if err := cp.Write(context.TODO(), rev, "v"); err != nil {
 		t.Fatalf("fail to write with the error %v", err)
 	}
@@ -31,7 +32,7 @@ func TestDeleteLINEARIZABLE(t *testing.T) {
 
 func TestReadLINEARIZABLE(t *testing.T) {
 	cp := piping.NewChainPiping("mem", consistent.LINEARIZABLE, false)
-	rev := index.NewRevision(1, 0, []string{"0.0.0.0:0", "1.1.1.1:1", "2.2.2.2:2"})
+	rev := index.NewRevision(1, 0, []pc.RkvNode{{Name: "0.0.0.0:0"}, {Name: "1.1.1.1:1"}, {Name: "2.2.2.2:2"}})
 	if err := cp.Write(context.TODO(), rev, "v"); err != nil {
 		t.Fatalf("fail to write with the error %v", err)
 	}
@@ -44,7 +45,7 @@ func TestReadLINEARIZABLE(t *testing.T) {
 
 func TestWriteLINEARIZABLEConcurrently(t *testing.T) {
 	cp := piping.NewChainPiping("mem", consistent.LINEARIZABLE, true)
-	rev := index.NewRevision(1, 0, []string{"0.0.0.0:0", "1.1.1.1:1", "2.2.2.2:2", "3.3.3.3:3"})
+	rev := index.NewRevision(1, 0, []pc.RkvNode{{Name: "0.0.0.0:0"}, {Name: "1.1.1.1:1"}, {Name: "2.2.2.2:2"}, {Name: "3.3.3.3:3"}})
 	if err := cp.Write(context.TODO(), rev, "v"); err != nil {
 		t.Fatalf("fail to write with the error %v", err)
 	}
@@ -52,7 +53,7 @@ func TestWriteLINEARIZABLEConcurrently(t *testing.T) {
 
 func TestDeleteLINEARIZABLEConcurrently(t *testing.T) {
 	cp := piping.NewChainPiping("mem", consistent.LINEARIZABLE, true)
-	rev := index.NewRevision(1, 0, []string{"0.0.0.0:0", "1.1.1.1:1", "2.2.2.2:2", "3.3.3.3:3"})
+	rev := index.NewRevision(1, 0, []pc.RkvNode{{Name: "0.0.0.0:0"}, {Name: "1.1.1.1:1"}, {Name: "2.2.2.2:2"}, {Name: "3.3.3.3:3"}})
 	if err := cp.Write(context.TODO(), rev, "v"); err != nil {
 		t.Fatalf("fail to write with the error %v", err)
 	}
@@ -63,7 +64,7 @@ func TestDeleteLINEARIZABLEConcurrently(t *testing.T) {
 
 func TestReadLINEARIZABLEConcurrently(t *testing.T) {
 	cp := piping.NewChainPiping("mem", consistent.LINEARIZABLE, true)
-	rev := index.NewRevision(1, 0, []string{"0.0.0.0:0", "1.1.1.1:1", "2.2.2.2:2"})
+	rev := index.NewRevision(1, 0, []pc.RkvNode{{Name: "0.0.0.0:0"}, {Name: "1.1.1.1:1"}, {Name: "2.2.2.2:2"}})
 	if err := cp.Write(context.TODO(), rev, "v"); err != nil {
 		t.Fatalf("fail to write with the error %v", err)
 	}

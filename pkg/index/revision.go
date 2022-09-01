@@ -17,6 +17,8 @@ package index
 import (
 	"encoding/binary"
 	"fmt"
+
+	"github.com/regionless-storage-service/pkg/partition/consistent"
 )
 
 // revBytesLen is the byte length of a normal Revision.
@@ -35,10 +37,10 @@ type Revision struct {
 	// set.
 	sub int64
 
-	nodes []string
+	nodes []consistent.RkvNode
 }
 
-func NewRevision(main, sub int64, nodes []string) Revision {
+func NewRevision(main, sub int64, nodes []consistent.RkvNode) Revision {
 	return Revision{main: main, sub: sub, nodes: nodes}
 }
 func (a Revision) String() string {
@@ -50,10 +52,10 @@ func (a Revision) GetMain() int64 {
 func (a Revision) GetSub() int64 {
 	return a.sub
 }
-func (a Revision) GetNodes() []string {
+func (a Revision) GetNodes() []consistent.RkvNode {
 	return a.nodes
 }
-func (a *Revision) SetNodes(ns []string) {
+func (a *Revision) SetNodes(ns []consistent.RkvNode) {
 	a.nodes = ns
 }
 func (a Revision) GreaterThan(b Revision) bool {

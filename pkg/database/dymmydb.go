@@ -1,5 +1,7 @@
 package database
 
+import "time"
+
 type dummyDatabase struct{}
 
 func (d dummyDatabase) Put(key, value string) (string, error) {
@@ -21,4 +23,11 @@ func (d dummyDatabase) Close() error {
 
 func newDummyDatabase() Database {
 	return dummyDatabase{}
+}
+
+func (d dummyDatabase) Latency() time.Duration {
+	return 0
+}
+
+func (d dummyDatabase) SetLatency(latency time.Duration) {
 }

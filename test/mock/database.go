@@ -47,3 +47,10 @@ func (md MockDatabase) Delete(key string) error {
 func (md MockDatabase) Close() error {
 	return nil
 }
+
+func (md MockDatabase) Latency() time.Duration {
+	return 0
+}
+
+func (md MockDatabase) SetLatency(latency time.Duration) {
+}

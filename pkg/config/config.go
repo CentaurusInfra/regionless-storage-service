@@ -6,9 +6,11 @@ import (
 	"os"
 	"path"
 	"runtime"
+	"time"
 
 	"github.com/regionless-storage-service/pkg/constants"
 	"github.com/regionless-storage-service/pkg/network/latency"
+	"github.com/regionless-storage-service/pkg/partition/consistent"
 )
 
 const (
@@ -67,9 +69,9 @@ func NewKVConfiguration(fileName string) (*KVConfiguration, error) {
 }
 
 // Returns local stores grouping by AvailabilityZone and remote stores in array
-func (c *KVConfiguration) GetReplications() (map[constants.AvailabilityZone][]string, []string, error) {
-	localStores := make(map[constants.AvailabilityZone][]string)
-	remoteStores := make([]string, 0)
+func (c *KVConfiguration) GetReplications() (map[constants.AvailabilityZone][]consistent.RkvNode, []consistent.RkvNode, error) {
+	localStores := make(map[constants.AvailabilityZone][]consistent.RkvNode)
+	remoteStores := make([]consistent.RkvNode, 0)
 	for _, store := range c.Stores {
 		target := fmt.Sprintf("%s:%d", store.Host, store.Port)
 		storeLatency := int64(0)
@@ -85,12 +87,13 @@ func (c *KVConfiguration) GetReplications() (map[constants.AvailabilityZone][]st
 
 		if storeLatency < c.RemoteStoreLatencyThresholdInMilliSec {
 			if _, found := localStores[store.AvailabilityZone]; !found {
-				locals := make([]string, 0)
+				locals := make([]consistent.RkvNode, 0)
 				localStores[store.AvailabilityZone] = locals
 			}
-			localStores[store.AvailabilityZone] = append(localStores[store.AvailabilityZone], target)
+			localStores[store.AvailabilityZone] = append(localStores[store.AvailabilityZone],
+				consistent.RkvNode{Name: target, Latency: time.Duration(storeLatency * int64(time.Millisecond)), IsRemote: false})
 		} else {
-			remoteStores = append(remoteStores, target)
+			remoteStores = append(remoteStores, consistent.RkvNode{Name: target, Latency: time.Duration(storeLatency * int64(time.Millisecond)), IsRemote: true})
 		}
 	}
 	return localStores, remoteStores, nil

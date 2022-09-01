@@ -32,3 +32,11 @@ func (l latencyDatabase) Close() error {
 func newLatencyDummyDatabase(latency time.Duration) Database {
 	return &latencyDatabase{backend: newDummyDatabase(), latency: latency}
 }
+
+func (l latencyDatabase) Latency() time.Duration {
+	return l.latency
+}
+
+func (l latencyDatabase) SetLatency(latency time.Duration) {
+	l.latency = latency
+}

@@ -2,6 +2,7 @@ package consistent
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/cespare/xxhash"
 	"github.com/regionless-storage-service/pkg/constants"
@@ -21,10 +22,14 @@ type ConsistentHashing interface {
 	LocateNodes(key []byte, count int) []Node
 }
 
-type rkvNode string
+type RkvNode struct {
+	Name     string
+	Latency  time.Duration
+	IsRemote bool
+}
 
-func (tn rkvNode) String() string {
-	return string(tn)
+func (tn RkvNode) String() string {
+	return tn.Name
 }
 
 type rkvHash struct{}
@@ -45,28 +50,28 @@ type HashingWithAzandRemote struct {
 	RemoteCount  int
 }
 
-func NewHashingWithLocalAndRemote(localStores map[constants.AvailabilityZone][]string, localCount int, remoteStores []string, remoteCount int) HashingWithAzandRemote {
+func NewHashingWithLocalAndRemote(localStores map[constants.AvailabilityZone][]RkvNode, localCount int, remoteStores []RkvNode, remoteCount int) HashingWithAzandRemote {
 	hasher := rkvHash{}
 	azRing := NewRendezvous(nil, hasher)
 	localRing := make(map[constants.AvailabilityZone]ConsistentHashing)
 	for az, stores := range localStores {
-		azRing.AddNode(rkvNode(az))
+		azRing.AddNode(RkvNode{Name: az.Name()})
 		if _, found := localRing[az]; !found {
 			localRing[az] = NewRendezvous(nil, hasher)
 		}
 		for _, store := range stores {
-			localRing[az].AddNode(rkvNode(store))
+			localRing[az].AddNode(store)
 		}
 	}
 	remoteRing := NewRendezvous(nil, hasher)
 	for _, store := range remoteStores {
-		remoteRing.AddNode(rkvNode(store))
+		remoteRing.AddNode(store)
 	}
 	return HashingWithAzandRemote{AzHashing: azRing, LocalHashing: localRing, RemoteHasing: remoteRing, LocalCount: localCount, RemoteCount: remoteCount}
 }
 
-func (h HashingWithAzandRemote) GetLocalAndRemoteNodes(key []byte) ([]rkvNode, []rkvNode, error) {
-	localNodes := []rkvNode{}
+func (h HashingWithAzandRemote) GetLocalAndRemoteNodes(key []byte) ([]RkvNode, []RkvNode, error) {
+	localNodes := []RkvNode{}
 	azs := h.AzHashing.LocateNodes(key, h.LocalCount)
 	if len(azs) != h.LocalCount {
 		return nil, nil, fmt.Errorf("failed to get %d zones. The return number is %d", h.LocalCount, len(azs))
@@ -76,15 +81,15 @@ func (h HashingWithAzandRemote) GetLocalAndRemoteNodes(key []byte) ([]rkvNode, [
 		if len(lnodes) != 1 {
 			return nil, nil, fmt.Errorf("failed to get 1 local node. The return number is %d", len(lnodes))
 		}
-		localNodes = append(localNodes, rkvNode(lnodes[0].String()))
+		localNodes = append(localNodes, RkvNode{Name: lnodes[0].String()})
 	}
-	remoteNodes := []rkvNode{}
+	remoteNodes := []RkvNode{}
 	rnodes := h.RemoteHasing.LocateNodes(key, h.RemoteCount)
 	if len(rnodes) != h.RemoteCount {
 		return nil, nil, fmt.Errorf("failed to get %d remote nodes. The return number is %d", h.RemoteCount, len(rnodes))
 	}
 	for _, rn := range rnodes {
-		remoteNodes = append(remoteNodes, rkvNode(rn.String()))
+		remoteNodes = append(remoteNodes, RkvNode{Name: rn.String()})
 	}
 	return localNodes, remoteNodes, nil
 }

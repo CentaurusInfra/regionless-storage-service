@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/gomodule/redigo/redis"
 	"github.com/regionless-storage-service/pkg/config"
@@ -45,14 +46,15 @@ func initPool(host string, port int) (string, *redis.Pool) {
 }
 
 type RedisDatabase struct {
-	client *redis.Pool
+	client  *redis.Pool
+	latency time.Duration
 }
 
 func createRedisDatabase(databaseUrl string) (Database, error) {
 	initOnce.Do(func() {
 		InitStorageInstancePool(config.RKVConfig.Stores)
 	})
-	return &RedisDatabase{client: pools[databaseUrl]}, nil
+	return &RedisDatabase{client: pools[databaseUrl], latency: 0}, nil
 }
 
 func (rd *RedisDatabase) Put(key, value string) (string, error) {
@@ -98,4 +100,12 @@ func (rd *RedisDatabase) Delete(key string) error {
 
 func (rd *RedisDatabase) Close() error {
 	return rd.client.Close()
+}
+
+func (rd *RedisDatabase) Latency() time.Duration {
+	return rd.latency
+}
+
+func (rd *RedisDatabase) SetLatency(latency time.Duration) {
+	rd.latency = latency
 }

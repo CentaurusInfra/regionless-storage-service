@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+
 	"k8s.io/klog"
 
 	"github.com/google/btree"
+	"github.com/regionless-storage-service/pkg/partition/consistent"
 	inc "github.com/regionless-storage-service/pkg/revision"
 )
 
@@ -61,7 +63,7 @@ type keyIndex struct {
 }
 
 // put puts a Revision to the keyIndex.
-func (ki *keyIndex) put(main int64, sub int64, nodes []string) {
+func (ki *keyIndex) put(main int64, sub int64, nodes []consistent.RkvNode) {
 	rev := Revision{main: main, sub: sub, nodes: nodes}
 
 	if len(ki.generations) == 0 {
