@@ -1,6 +1,6 @@
 {
     "ConsistentHash": "rendezvous",
-    "HashingManagerType": "syncAync",
+    "HashingManagerType": "syncAsync",
     "PipingType": "localSyncRemoteAsync",
     "BucketSize": 10,
     "ReplicaNum": {
