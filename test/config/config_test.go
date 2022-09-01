@@ -96,7 +96,7 @@ func TestLocalStores(t *testing.T) {
 			t.Fatalf("The local availiblity zone %s is not expected", az)
 		}
 		for _, localNode := range azNodes {
-			if localNode[0:7] != "127.0.0" {
+			if localNode[0:9] != "us-east-1" {
 				t.Fatalf("The local node %s is not expected", localNode)
 			}
 		}
@@ -188,7 +188,7 @@ func TestRemoteStores(t *testing.T) {
 		t.Fatalf("The remote store number is %d", len(remoteNodes))
 	}
 	for _, remoteNode := range remoteNodes {
-		if remoteNode[0:11] != "172.31.9.14" {
+		if remoteNode[0:9] != "us-east-2" {
 			t.Fatalf("The remote node %s is not expected", remoteNode)
 		}
 	}
