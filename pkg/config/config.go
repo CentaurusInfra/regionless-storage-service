@@ -30,7 +30,7 @@ type KVConfiguration struct {
 	ConsistentHash                        constants.ConsistentHashingType
 	StoreType                             constants.StoreType
 	HashingManagerType                    constants.HashingManagerType
-	PipeType                              constants.PipingType
+	PipingType                            constants.PipingType
 	Stores                                []KVStore
 	BucketSize                            int64
 	ReplicaNum                            ReplicaNum

@@ -3,10 +3,12 @@ package consistent
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/cespare/xxhash"
 	"github.com/regionless-storage-service/pkg/constants"
+	"k8s.io/klog"
 )
 
 type Hasher interface {
@@ -46,6 +48,7 @@ type KV struct {
 type HashingManager interface {
 	GetSyncNodes(key []byte) ([]Node, error)
 	GetAsyncNodes(key []byte) ([]Node, error)
+	GetNodes(key []byte) ([]string, error)
 }
 
 type SyncHashingManager struct {
@@ -61,12 +64,22 @@ func NewSyncHashingManager(hashingType constants.ConsistentHashingType, nodes []
 	return SyncHashingManager{hasing: h, count: count}
 }
 
-func (fhm SyncHashingManager) GetSyncNodes(key []byte) ([]Node, error) {
-	return fhm.hasing.LocateNodes(key, fhm.count), nil
+func (shm SyncHashingManager) GetSyncNodes(key []byte) ([]Node, error) {
+	return shm.hasing.LocateNodes(key, shm.count), nil
 }
 
-func (fhm SyncHashingManager) GetAsyncNodes(key []byte) ([]Node, error) {
+func (shm SyncHashingManager) GetAsyncNodes(key []byte) ([]Node, error) {
 	return nil, nil
+}
+
+func (shm SyncHashingManager) GetNodes(key []byte) ([]string, error) {
+	syncNodes, err := shm.GetSyncNodes(key)
+	res := make([]string, 0)
+	if err != nil {
+		klog.Errorf("failed to get all the sync nodes: %v", err)
+		return res, err
+	}
+	return []string{strings.Join(convertNodeArrToStringArr(syncNodes), ",")}, nil
 }
 
 type SyncByZoneAsyncHashingManager struct {
@@ -133,6 +146,23 @@ func (sahm SyncByZoneAsyncHashingManager) GetAsyncNodes(key []byte) ([]Node, err
 	return rnodes, nil
 }
 
+func (sahm SyncByZoneAsyncHashingManager) GetNodes(key []byte) ([]string, error) {
+	syncNodes, err := sahm.GetSyncNodes(key)
+	res := make([]string, 0)
+	if err != nil {
+		klog.Errorf("failed to get all the sync nodes: %v", err)
+		return res, err
+	}
+	syncNodesString := strings.Join(convertNodeArrToStringArr(syncNodes), ",")
+	asyncNodes, err := sahm.GetAsyncNodes(key)
+	if err != nil {
+		klog.Errorf("failed to get all the async nodes: %v", err)
+		return res, err
+	}
+	asyncNodesString := strings.Join(convertNodeArrToStringArr(asyncNodes), ",")
+	return []string{syncNodesString, asyncNodesString}, nil
+}
+
 func Factory(hashingType constants.ConsistentHashingType) ConsistentHashing {
 	switch hashingType {
 	case constants.Rendezvous:
@@ -142,4 +172,12 @@ func Factory(hashingType constants.ConsistentHashingType) ConsistentHashing {
 	default:
 		return NewRendezvous(nil, rkvHash{})
 	}
+}
+
+func convertNodeArrToStringArr(nodes []Node) []string {
+	res := make([]string, 0)
+	for _, node := range nodes {
+		res = append(res, node.String())
+	}
+	return res
 }

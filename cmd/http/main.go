@@ -93,7 +93,7 @@ func NewKeyValueHandler(conf *config.KVConfiguration) *KeyValueHandler {
 	default:
 		hm = consistent.NewSyncAsyncHashingManager(conf.ConsistentHash, localStores, conf.ReplicaNum.Local, remoteStores, conf.ReplicaNum.Remote)
 	}
-	switch conf.PipeType {
+	switch conf.PipingType {
 	case constants.Chain:
 		pp = piping.NewChainPiping(conf.StoreType, ca.LINEARIZABLE, conf.Concurrent)
 	case constants.LocalSyncRemoteAsync:
@@ -235,19 +235,11 @@ func (handler *KeyValueHandler) createKV(w http.ResponseWriter, r *http.Request)
 	rev := revision.GetGlobalIncreasingRevision()
 	newRev := index.NewRevision(int64(rev), 0, nil)
 	primRev := handler.getPrimaryRevBytesWithBucket(newRev)
-	syncNodes, err := handler.hm.GetSyncNodes(primRev)
+	nodes, err := handler.hm.GetNodes(primRev)
 	if err != nil {
-		klog.Errorf("failed to get all the sync nodes: %v", err)
 		return "", err
 	}
-	syncNodesString := strings.Join(convertNodeArrToStringArr(syncNodes), ",")
-	asyncNodes, err := handler.hm.GetAsyncNodes(primRev)
-	if err != nil {
-		klog.Errorf("failed to get all the async nodes: %v", err)
-		return "", err
-	}
-	asyncNodesString := strings.Join(convertNodeArrToStringArr(asyncNodes), ",")
-	newRev.SetNodes([]string{syncNodesString, asyncNodesString})
+	newRev.SetNodes(nodes)
 	byteValue, err := ioutil.ReadAll(r.Body)
 
 	if err != nil {
@@ -319,12 +311,4 @@ func (handler *KeyValueHandler) getPrimaryRevBytesWithBucket(rev index.Revision)
 	primaryRevBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(primaryRevBytes, uint64(primaryRev))
 	return primaryRevBytes
-}
-
-func convertNodeArrToStringArr(nodes []consistent.Node) []string {
-	res := make([]string, 0)
-	for _, node := range nodes {
-		res = append(res, node.String())
-	}
-	return res
 }
