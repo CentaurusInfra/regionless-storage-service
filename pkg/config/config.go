@@ -27,8 +27,10 @@ var (
 )
 
 type KVConfiguration struct {
-	ConsistentHash                        string
+	ConsistentHash                        constants.ConsistentHashingType
 	StoreType                             constants.StoreType
+	HashingManagerType                    constants.HashingManagerType
+	PipeType                              constants.PipingType
 	Stores                                []KVStore
 	BucketSize                            int64
 	ReplicaNum                            ReplicaNum
@@ -96,5 +98,6 @@ func (c *KVConfiguration) GetReplications() (map[constants.AvailabilityZone][]co
 			remoteStores = append(remoteStores, consistent.RkvNode{Name: target, Latency: time.Duration(storeLatency * int64(time.Millisecond)), IsRemote: true})
 		}
 	}
+	fmt.Printf("The local stores are %v and the remote are %v", localStores, remoteStores)
 	return localStores, remoteStores, nil
 }

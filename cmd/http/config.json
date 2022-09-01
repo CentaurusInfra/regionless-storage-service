@@ -1,5 +1,7 @@
 {
     "ConsistentHash": "rendezvous",
+    "HashingManagerType": "syncAync",
+    "PipingType": "localSyncRemoteAsync",
     "BucketSize": 10,
     "ReplicaNum": {
         "//" : "The number of local replica from the ones whose latency is fewer than RemoteStoreLatencyThresholdInMilliSec", 

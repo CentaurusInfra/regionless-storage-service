@@ -6,7 +6,6 @@ import (
 
 	"github.com/regionless-storage-service/pkg/config"
 	"github.com/regionless-storage-service/pkg/constants"
-	"github.com/regionless-storage-service/pkg/partition/consistent"
 )
 
 var (
@@ -38,14 +37,14 @@ func Factory(databaseType constants.StoreType, store *config.KVStore) (Database,
 	}
 }
 
-func FactoryByNode(databaseType constants.StoreType, store consistent.RkvNode) (Database, error) {
+func FactoryWithNameAndLatency(databaseType constants.StoreType, name string, latency time.Duration) (Database, error) {
 	switch databaseType {
 	case constants.Redis:
-		return createRedisDatabase(store.Name)
+		return createRedisDatabase(name)
 	case constants.Memory:
-		return NewMemDatabase(store.Name), nil
+		return NewMemDatabase(name), nil
 	case constants.DummyLatency: // simulator database backend suitable for internal perf load test
-		return newLatencyDummyDatabase(time.Duration(store.Latency) * time.Millisecond), nil
+		return newLatencyDummyDatabase(latency), nil
 	default:
 		return nil, &DatabaseNotImplementedError{databaseType.Name()}
 	}

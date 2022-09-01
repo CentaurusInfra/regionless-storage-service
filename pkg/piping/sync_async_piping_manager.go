@@ -2,84 +2,84 @@ package piping
 
 import (
 	"context"
-	"sort"
+	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/regionless-storage-service/pkg/config"
 	"github.com/regionless-storage-service/pkg/constants"
 	"github.com/regionless-storage-service/pkg/database"
 	"github.com/regionless-storage-service/pkg/index"
-	"github.com/regionless-storage-service/pkg/partition/consistent"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 )
 
 type SyncAsyncPiping struct {
 	databaseType constants.StoreType
-	localStores  []database.Database
-	remoteStores []database.Database
 }
 
-func NewSyncAsyncPiping(storeType constants.StoreType, nodes []consistent.RkvNode) (*SyncAsyncPiping, error) {
-	localStores := make([]database.Database, 0)
-	remoteStores := make([]database.Database, 0)
-	for _, node := range nodes {
-		if node.IsRemote {
-			if remoteStore, err := database.FactoryByNode(storeType, node); err != nil {
-				return nil, err
-			} else {
-				remoteStores = append(remoteStores, remoteStore)
-			}
-		} else {
-			if localStore, err := database.FactoryByNode(storeType, node); err != nil {
-				return nil, err
-			} else {
-				localStores = append(localStores, localStore)
-			}
-		}
-	}
-
-	sort.Slice(localStores, func(i, j int) bool {
-		return localStores[i].Latency() < localStores[j].Latency()
-	})
-
-	return &SyncAsyncPiping{databaseType: storeType, localStores: localStores, remoteStores: remoteStores}, nil
+func NewSyncAsyncPiping(storeType constants.StoreType) *SyncAsyncPiping {
+	return &SyncAsyncPiping{databaseType: storeType}
 }
 
 func (sap *SyncAsyncPiping) Read(ctx context.Context, rev index.Revision) (string, error) {
 	_, rootSpan := otel.Tracer(config.TraceName).Start(ctx, "SyncAsyncPiping Read")
 	defer rootSpan.End()
-
-	return sap.localStores[0].Get(rev.String())
+	syncNodes, _, err := splitStores(rev.GetNodes())
+	if err != nil {
+		return "", err
+	}
+	// The first sync store has the fewest latency. Threfore, it is chosen to read
+	if database, err := database.FactoryWithNameAndLatency(sap.databaseType, syncNodes[0], 0); err != nil {
+		return "", err
+	} else {
+		return database.Get(rev.String())
+	}
 }
 
 func (sap *SyncAsyncPiping) Write(ctx context.Context, rev index.Revision, val string) error {
 	_, rootSpan := otel.Tracer(config.TraceName).Start(ctx, "SyncAsyncPiping write")
 	defer rootSpan.End()
+	syncNodes, asyncNodes, err := splitStores(rev.GetNodes())
+	if err != nil {
+		return err
+	}
 
-	for _, remoteStore := range sap.remoteStores {
-		go func(ctx context.Context, store database.Database, key, val string) {
-			_, rootSpan := otel.Tracer(config.TraceName).Start(ctx, "remote db put")
+	for _, asyncNode := range asyncNodes {
+		go func(ctx context.Context, databaseType constants.StoreType, name, key, val string) {
+			_, rootSpan := otel.Tracer(config.TraceName).Start(ctx, "async db put")
 			defer rootSpan.End()
-			if _, err := store.Put(key, val); err != nil {
+			if database, err := database.FactoryWithNameAndLatency(sap.databaseType, name, 0); err != nil {
 				rootSpan.RecordError(err)
 				rootSpan.SetStatus(codes.Error, err.Error())
+			} else {
+				if _, err := database.Put(key, val); err != nil {
+					rootSpan.RecordError(err)
+					rootSpan.SetStatus(codes.Error, err.Error())
+				}
 			}
-		}(ctx, remoteStore, rev.String(), val)
+
+		}(ctx, sap.databaseType, asyncNode, rev.String(), val)
 	}
 
 	var wg sync.WaitGroup
-	for _, localStore := range sap.localStores {
+	for _, syncNode := range syncNodes {
 		wg.Add(1)
-		go func(ctx context.Context, store database.Database, key, val string) {
+		go func(ctx context.Context, databaseType constants.StoreType, name, key, val string) {
 			defer wg.Done()
-			_, rootSpan := otel.Tracer(config.TraceName).Start(ctx, "local db put")
+			_, rootSpan := otel.Tracer(config.TraceName).Start(ctx, "sync db put")
 			defer rootSpan.End()
-			if _, err := store.Put(key, val); err != nil {
+			if database, err := database.FactoryWithNameAndLatency(sap.databaseType, name, 0); err != nil {
 				rootSpan.RecordError(err)
 				rootSpan.SetStatus(codes.Error, err.Error())
+			} else {
+				if _, err := database.Put(key, val); err != nil {
+					rootSpan.RecordError(err)
+					rootSpan.SetStatus(codes.Error, err.Error())
+				}
 			}
-		}(ctx, localStore, rev.String(), val)
+
+		}(ctx, sap.databaseType, syncNode, rev.String(), val)
 	}
 	wg.Wait()
 
@@ -89,45 +89,64 @@ func (sap *SyncAsyncPiping) Write(ctx context.Context, rev index.Revision, val s
 func (sap *SyncAsyncPiping) Delete(ctx context.Context, rev index.Revision) error {
 	_, rootSpan := otel.Tracer(config.TraceName).Start(ctx, "SyncAsyncPiping delete")
 	defer rootSpan.End()
+	syncNodes, asyncNodes, err := splitStores(rev.GetNodes())
+	if err != nil {
+		return err
+	}
 
-	for _, remoteStore := range sap.remoteStores {
-		go func(ctx context.Context, store database.Database, key string) {
-			_, rootSpan := otel.Tracer(config.TraceName).Start(ctx, "remote db delete")
+	for _, asyncNode := range asyncNodes {
+		go func(ctx context.Context, databaseType constants.StoreType, name, key string) {
+			_, rootSpan := otel.Tracer(config.TraceName).Start(ctx, "async db delete")
 			defer rootSpan.End()
-			if err := store.Delete(key); err != nil {
+			if database, err := database.FactoryWithNameAndLatency(sap.databaseType, name, 0); err != nil {
 				rootSpan.RecordError(err)
 				rootSpan.SetStatus(codes.Error, err.Error())
+			} else {
+				if err := database.Delete(key); err != nil {
+					rootSpan.RecordError(err)
+					rootSpan.SetStatus(codes.Error, err.Error())
+				}
 			}
-		}(ctx, remoteStore, rev.String())
+
+		}(ctx, sap.databaseType, asyncNode, rev.String())
 	}
 
 	var wg sync.WaitGroup
-	for _, localStore := range sap.localStores {
+	for _, syncNode := range syncNodes {
 		wg.Add(1)
-		go func(ctx context.Context, store database.Database, key string) {
+		go func(ctx context.Context, databaseType constants.StoreType, name, key string) {
 			defer wg.Done()
-			_, rootSpan := otel.Tracer(config.TraceName).Start(ctx, "local db delete")
+			_, rootSpan := otel.Tracer(config.TraceName).Start(ctx, "sync db delete")
 			defer rootSpan.End()
-			if err := store.Delete(key); err != nil {
+			if database, err := database.FactoryWithNameAndLatency(sap.databaseType, name, 0); err != nil {
 				rootSpan.RecordError(err)
 				rootSpan.SetStatus(codes.Error, err.Error())
+			} else {
+				if err := database.Delete(key); err != nil {
+					rootSpan.RecordError(err)
+					rootSpan.SetStatus(codes.Error, err.Error())
+				}
 			}
-		}(ctx, localStore, rev.String())
+
+		}(ctx, sap.databaseType, syncNode, rev.String())
 	}
 	wg.Wait()
 
 	return nil
 }
 
-func splitLocalAndRemoteStores(stores []consistent.RkvNode) ([]consistent.RkvNode, []consistent.RkvNode) {
-	localStores := make([]consistent.RkvNode, 0)
-	remoteStores := make([]consistent.RkvNode, 0)
-	for _, store := range stores {
-		if store.IsRemote {
-			remoteStores = append(remoteStores, store)
-		} else {
-			localStores = append(localStores, store)
-		}
+func splitStores(stores []string) ([]string, []string, error) {
+	syncNodes := make([]string, 0)
+	asyncNodes := make([]string, 0)
+	if len(stores) < 1 {
+		return syncNodes, asyncNodes, fmt.Errorf("no stores in the revision")
 	}
-	return localStores, remoteStores
+	syncNodes = strings.Split(stores[0], ",")
+	if len(syncNodes) < 1 {
+		return syncNodes, asyncNodes, fmt.Errorf("no sync stores in the revision")
+	}
+	if len(stores) == 2 {
+		asyncNodes = strings.Split(stores[1], ",")
+	}
+	return syncNodes, asyncNodes, nil
 }

@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/regionless-storage-service/pkg/constants"
 	"github.com/regionless-storage-service/pkg/database"
 
 	"go.opentelemetry.io/otel"
@@ -67,8 +68,7 @@ func main() {
 }
 
 type KeyValueHandler struct {
-	ch        consistent.ConsistentHashing
-	hm        consistent.HashingWithAzandRemote
+	hm        consistent.HashingManager
 	conf      *config.KVConfiguration
 	indexTree index.Index
 	piping    piping.Piping
@@ -79,10 +79,30 @@ func NewKeyValueHandler(conf *config.KVConfiguration) *KeyValueHandler {
 	if err != nil {
 		panic(fmt.Errorf("error in get replications: %v", err))
 	}
-	hm := consistent.NewHashingWithLocalAndRemote(localStores, conf.ReplicaNum.Local, remoteStores, conf.ReplicaNum.Remote)
+	var hm consistent.HashingManager
+	var pp piping.Piping
+	switch conf.HashingManagerType {
+	case constants.Sync:
+		stores := make([]consistent.RkvNode, 0)
+		for _, localStore := range localStores {
+			stores = append(stores, localStore...)
+		}
+		hm = consistent.NewSyncHashingManager(conf.ConsistentHash, stores, conf.ReplicaNum.Local)
+	case constants.SyncAsync:
+		hm = consistent.NewSyncAsyncHashingManager(conf.ConsistentHash, localStores, conf.ReplicaNum.Local, remoteStores, conf.ReplicaNum.Remote)
+	default:
+		hm = consistent.NewSyncAsyncHashingManager(conf.ConsistentHash, localStores, conf.ReplicaNum.Local, remoteStores, conf.ReplicaNum.Remote)
+	}
+	switch conf.PipeType {
+	case constants.Chain:
+		pp = piping.NewChainPiping(conf.StoreType, ca.LINEARIZABLE, conf.Concurrent)
+	case constants.LocalSyncRemoteAsync:
+		pp = piping.NewSyncAsyncPiping(conf.StoreType)
+	default:
+		pp = piping.NewSyncAsyncPiping(conf.StoreType)
+	}
 
-	piping := piping.NewChainPiping(conf.StoreType, ca.LINEARIZABLE, conf.Concurrent)
-	return &KeyValueHandler{hm: hm, conf: conf, indexTree: index.NewTreeIndex(), piping: piping}
+	return &KeyValueHandler{hm: hm, conf: conf, indexTree: index.NewTreeIndex(), piping: pp}
 }
 
 func (handler *KeyValueHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -214,13 +234,20 @@ func (handler *KeyValueHandler) createKV(w http.ResponseWriter, r *http.Request)
 
 	rev := revision.GetGlobalIncreasingRevision()
 	newRev := index.NewRevision(int64(rev), 0, nil)
-	localNodes, remoteNodes, err := handler.hm.GetLocalAndRemoteNodes(handler.getPrimaryRevBytesWithBucket(newRev))
+	primRev := handler.getPrimaryRevBytesWithBucket(newRev)
+	syncNodes, err := handler.hm.GetSyncNodes(primRev)
 	if err != nil {
-		klog.Errorf("failed to get all the nodes: %v", err)
+		klog.Errorf("failed to get all the sync nodes: %v", err)
 		return "", err
 	}
-	nodes := append(localNodes, remoteNodes...)
-	newRev.SetNodes(nodes)
+	syncNodesString := strings.Join(convertNodeArrToStringArr(syncNodes), ",")
+	asyncNodes, err := handler.hm.GetAsyncNodes(primRev)
+	if err != nil {
+		klog.Errorf("failed to get all the async nodes: %v", err)
+		return "", err
+	}
+	asyncNodesString := strings.Join(convertNodeArrToStringArr(asyncNodes), ",")
+	newRev.SetNodes([]string{syncNodesString, asyncNodesString})
 	byteValue, err := ioutil.ReadAll(r.Body)
 
 	if err != nil {
@@ -252,11 +279,8 @@ func (handler *KeyValueHandler) createKV(w http.ResponseWriter, r *http.Request)
 		// todo: cleanup writes on nodes
 		return "", err
 	}
-	savedStores := make([]string, 0)
-	for _, node := range nodes {
-		savedStores = append(savedStores, node.Name)
-	}
-	return fmt.Sprintf("The key value pair (%s,%s) has been saved as revision %s at %s\n", payload["key"], payload["value"], strconv.FormatUint(rev, 10), strings.Join(savedStores, ",")), err
+
+	return fmt.Sprintf("The key value pair (%s,%s) has been saved as revision %s at %s\n", payload["key"], payload["value"], strconv.FormatUint(rev, 10), strings.Join(newRev.GetNodes(), ",")), err
 }
 
 func (handler *KeyValueHandler) deleteKV(w http.ResponseWriter, r *http.Request) (string, error) {
@@ -295,4 +319,12 @@ func (handler *KeyValueHandler) getPrimaryRevBytesWithBucket(rev index.Revision)
 	primaryRevBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(primaryRevBytes, uint64(primaryRev))
 	return primaryRevBytes
+}
+
+func convertNodeArrToStringArr(nodes []consistent.Node) []string {
+	res := make([]string, 0)
+	for _, node := range nodes {
+		res = append(res, node.String())
+	}
+	return res
 }
