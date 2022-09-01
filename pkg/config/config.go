@@ -67,6 +67,7 @@ func NewKVConfiguration(fileName string) (*KVConfiguration, error) {
 }
 
 // Returns local stores grouping by AvailabilityZone and remote stores in array
+// returned items identifing backend stores by name, NOT by hostname:port - backend may be other than redis type
 func (c *KVConfiguration) GetReplications() (map[constants.AvailabilityZone][]string, []string, error) {
 	localStores := make(map[constants.AvailabilityZone][]string)
 	remoteStores := make([]string, 0)
@@ -88,9 +89,9 @@ func (c *KVConfiguration) GetReplications() (map[constants.AvailabilityZone][]st
 				locals := make([]string, 0)
 				localStores[store.AvailabilityZone] = locals
 			}
-			localStores[store.AvailabilityZone] = append(localStores[store.AvailabilityZone], target)
+			localStores[store.AvailabilityZone] = append(localStores[store.AvailabilityZone], store.Name)
 		} else {
-			remoteStores = append(remoteStores, target)
+			remoteStores = append(remoteStores, store.Name)
 		}
 	}
 	return localStores, remoteStores, nil

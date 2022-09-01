@@ -253,6 +253,7 @@ func (handler *KeyValueHandler) createKV(w http.ResponseWriter, r *http.Request)
 		if err != nil {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
+			return "", fmt.Errorf("system backend failed to write data: %v", err)
 		}
 	}
 
