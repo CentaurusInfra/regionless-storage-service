@@ -41,10 +41,6 @@ func (th rkvHash) Hash(key []byte) uint64 {
 	return xxhash.Sum64(key)
 }
 
-type KV struct {
-	key, value string
-}
-
 type HashingManager interface {
 	GetSyncNodes(key []byte) ([]Node, error)
 	GetAsyncNodes(key []byte) ([]Node, error)
@@ -114,6 +110,10 @@ func NewSyncAsyncHashingManager(hashingType constants.ConsistentHashingType, loc
 }
 
 func (sahm SyncByZoneAsyncHashingManager) GetSyncNodes(key []byte) ([]Node, error) {
+	localNodes := make([]Node, 0)
+	if sahm.LocalCount < 1 {
+		return localNodes, nil
+	}
 	nodesWithLatency := make([]RkvNode, 0)
 	azs := sahm.AzHashing.LocateNodes(key, sahm.LocalCount)
 	if len(azs) != sahm.LocalCount {
@@ -131,7 +131,6 @@ func (sahm SyncByZoneAsyncHashingManager) GetSyncNodes(key []byte) ([]Node, erro
 		return nodesWithLatency[i].Latency < nodesWithLatency[j].Latency
 	})
 
-	localNodes := make([]Node, 0)
 	for _, node := range nodesWithLatency {
 		localNodes = append(localNodes, node)
 	}
@@ -139,6 +138,9 @@ func (sahm SyncByZoneAsyncHashingManager) GetSyncNodes(key []byte) ([]Node, erro
 }
 
 func (sahm SyncByZoneAsyncHashingManager) GetAsyncNodes(key []byte) ([]Node, error) {
+	if sahm.RemoteCount < 1 {
+		return make([]Node, 0), nil
+	}
 	rnodes := sahm.RemoteHasing.LocateNodes(key, sahm.RemoteCount)
 	if len(rnodes) != sahm.RemoteCount {
 		return nil, fmt.Errorf("failed to get %d remote nodes. The return number is %d", sahm.RemoteCount, len(rnodes))

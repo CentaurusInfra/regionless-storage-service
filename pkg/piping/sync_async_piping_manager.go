@@ -25,12 +25,20 @@ func NewSyncAsyncPiping(storeType constants.StoreType) *SyncAsyncPiping {
 func (sap *SyncAsyncPiping) Read(ctx context.Context, rev index.Revision) (string, error) {
 	_, rootSpan := otel.Tracer(config.TraceName).Start(ctx, "SyncAsyncPiping Read")
 	defer rootSpan.End()
-	syncNodes, _, err := splitStores(rev.GetNodes())
+	syncNodes, asyncNodes, err := splitStores(rev.GetNodes())
 	if err != nil {
 		return "", err
 	}
+	target := ""
+	if len(syncNodes) > 0 {
+		target = syncNodes[0]
+	} else if len(asyncNodes) > 0 {
+		target = asyncNodes[0]
+	} else {
+		return "", fmt.Errorf("the rev %v does not have any nodes", rev)
+	}
 	// The first sync store has the fewest latency. Threfore, it is chosen to read
-	if database, err := database.FactoryWithNameAndLatency(sap.databaseType, syncNodes[0], 0); err != nil {
+	if database, err := database.FactoryWithNameAndLatency(sap.databaseType, target, 0); err != nil {
 		return "", err
 	} else {
 		return database.Get(rev.String())
@@ -46,6 +54,9 @@ func (sap *SyncAsyncPiping) Write(ctx context.Context, rev index.Revision, val s
 	}
 
 	for _, asyncNode := range asyncNodes {
+		if len(asyncNode) < 1 {
+			continue
+		}
 		go func(ctx context.Context, databaseType constants.StoreType, name, key, val string) {
 			_, rootSpan := otel.Tracer(config.TraceName).Start(ctx, "async db put")
 			defer rootSpan.End()
@@ -67,6 +78,9 @@ func (sap *SyncAsyncPiping) Write(ctx context.Context, rev index.Revision, val s
 		wg.Add(1)
 		go func(ctx context.Context, databaseType constants.StoreType, name, key, val string) {
 			defer wg.Done()
+			if len(name) < 1 {
+				return
+			}
 			_, rootSpan := otel.Tracer(config.TraceName).Start(ctx, "sync db put")
 			defer rootSpan.End()
 			if database, err := database.FactoryWithNameAndLatency(sap.databaseType, name, 0); err != nil {
@@ -95,6 +109,9 @@ func (sap *SyncAsyncPiping) Delete(ctx context.Context, rev index.Revision) erro
 	}
 
 	for _, asyncNode := range asyncNodes {
+		if len(asyncNode) < 1 {
+			continue
+		}
 		go func(ctx context.Context, databaseType constants.StoreType, name, key string) {
 			_, rootSpan := otel.Tracer(config.TraceName).Start(ctx, "async db delete")
 			defer rootSpan.End()
@@ -116,6 +133,9 @@ func (sap *SyncAsyncPiping) Delete(ctx context.Context, rev index.Revision) erro
 		wg.Add(1)
 		go func(ctx context.Context, databaseType constants.StoreType, name, key string) {
 			defer wg.Done()
+			if len(name) < 1 {
+				return
+			}
 			_, rootSpan := otel.Tracer(config.TraceName).Start(ctx, "sync db delete")
 			defer rootSpan.End()
 			if database, err := database.FactoryWithNameAndLatency(sap.databaseType, name, 0); err != nil {
