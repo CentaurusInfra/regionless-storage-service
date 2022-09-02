@@ -75,7 +75,8 @@ func TestLocalStores(t *testing.T) {
 		},
 	}
 	c := &config.KVConfiguration{
-		ReplicaNum:                            config.ReplicaNum{Local: 3, Remote: 1},
+		LocalReplicaNum:                       3,
+		RemoteReplicaNum:                      1,
 		StoreType:                             constants.DummyLatency,
 		Concurrent:                            false,
 		RemoteStoreLatencyThresholdInMilliSec: 100,
@@ -171,7 +172,8 @@ func TestRemoteStores(t *testing.T) {
 		},
 	}
 	c := &config.KVConfiguration{
-		ReplicaNum:                            config.ReplicaNum{Local: 3, Remote: 1},
+		LocalReplicaNum:                       3,
+		RemoteReplicaNum:                      1,
 		StoreType:                             constants.DummyLatency,
 		Concurrent:                            false,
 		RemoteStoreLatencyThresholdInMilliSec: 100,

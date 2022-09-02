@@ -87,11 +87,11 @@ func NewKeyValueHandler(conf *config.KVConfiguration) *KeyValueHandler {
 		for _, localStore := range localStores {
 			stores = append(stores, localStore...)
 		}
-		hm = consistent.NewSyncHashingManager(conf.ConsistentHash, stores, conf.ReplicaNum.Local)
+		hm = consistent.NewSyncHashingManager(conf.ConsistentHash, stores, conf.LocalReplicaNum)
 	case constants.SyncAsync:
-		hm = consistent.NewSyncAsyncHashingManager(conf.ConsistentHash, localStores, conf.ReplicaNum.Local, remoteStores, conf.ReplicaNum.Remote)
+		hm = consistent.NewSyncAsyncHashingManager(conf.ConsistentHash, localStores, conf.LocalReplicaNum, remoteStores, conf.RemoteReplicaNum)
 	default:
-		hm = consistent.NewSyncAsyncHashingManager(conf.ConsistentHash, localStores, conf.ReplicaNum.Local, remoteStores, conf.ReplicaNum.Remote)
+		hm = consistent.NewSyncAsyncHashingManager(conf.ConsistentHash, localStores, conf.LocalReplicaNum, remoteStores, conf.RemoteReplicaNum)
 	}
 	switch conf.PipingType {
 	case constants.Chain:

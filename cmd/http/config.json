@@ -3,12 +3,10 @@
     "HashingManagerType": "syncAsync",
     "PipingType": "localSyncRemoteAsync",
     "BucketSize": 10,
-    "ReplicaNum": {
-        "//" : "The number of local replica from the ones whose latency is fewer than RemoteStoreLatencyThresholdInMilliSec", 
-        "Local": 2,
-        "//" : "The number of remote replica from the ones whose latency is more than or equals to RemoteStoreLatencyThresholdInMilliSec", 
-        "Remote": 1
-    },
+    "//" : "The number of local replica from the ones whose latency is fewer than RemoteStoreLatencyThresholdInMilliSec",
+    "LocalReplicaNum": 2,
+    "//" : "The number of remote replica from the ones whose latency is more than or equals to RemoteStoreLatencyThresholdInMilliSec",
+    "RemoteReplicaNum": 1,
     "StoreType": "mem",
     "Concurrent": true,
     "RemoteStoreLatencyThresholdInMilliSec": 100,

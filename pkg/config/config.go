@@ -33,14 +33,10 @@ type KVConfiguration struct {
 	PipingType                            constants.PipingType
 	Stores                                []KVStore
 	BucketSize                            int64
-	ReplicaNum                            ReplicaNum
 	Concurrent                            bool
 	RemoteStoreLatencyThresholdInMilliSec int64
-}
-
-type ReplicaNum struct {
-	Local  int
-	Remote int
+	LocalReplicaNum                       int
+	RemoteReplicaNum                      int
 }
 
 type KVStore struct {
