@@ -97,7 +97,7 @@ func TestLocalStores(t *testing.T) {
 		}
 		for _, localNode := range azNodes {
 			if localNode.Name[0:7] != "127.0.0" {
-				t.Fatalf("The local node %s is not expected", localNode)
+				t.Fatalf("The local node %s is not expected", localNode.Name)
 			}
 		}
 	}

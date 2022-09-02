@@ -70,7 +70,7 @@ func NewKVConfiguration(fileName string) (*KVConfiguration, error) {
 	return configuration, err
 }
 
-// Returns local stores grouping by AvailabilityZone and remote stores in array
+// returned items identifing backend stores by name, NOT by hostname:port - backend may be other than redis type
 func (c *KVConfiguration) GetReplications() (map[constants.AvailabilityZone][]consistent.RkvNode, []consistent.RkvNode, error) {
 	localStores := make(map[constants.AvailabilityZone][]consistent.RkvNode)
 	remoteStores := make([]consistent.RkvNode, 0)
