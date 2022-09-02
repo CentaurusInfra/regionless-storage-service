@@ -125,12 +125,10 @@ func (sahm SyncByZoneAsyncHashingManager) GetSyncNodes(key []byte) ([]Node, erro
 			return nil, fmt.Errorf("failed to get 1 local node. The return number is %d", len(lnodes))
 		}
 		nodesWithLatency = append(nodesWithLatency, RkvNode{Name: lnodes[0].String(), Latency: sahm.LatencyMap[lnodes[0].String()]})
-
 	}
 	sort.Slice(nodesWithLatency, func(i, j int) bool {
 		return nodesWithLatency[i].Latency < nodesWithLatency[j].Latency
 	})
-
 	for _, node := range nodesWithLatency {
 		localNodes = append(localNodes, node)
 	}
