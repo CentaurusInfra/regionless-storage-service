@@ -70,6 +70,7 @@ func NewKVConfiguration(fileName string) (*KVConfiguration, error) {
 	return configuration, err
 }
 
+// Please verify that any new datastore type does not break the codes here. Please do run real datastores locally before check-in
 // returned items identifing backend stores by name, NOT by hostname:port - backend may be other than redis type
 func (c *KVConfiguration) GetReplications() (map[constants.AvailabilityZone][]consistent.RkvNode, []consistent.RkvNode, error) {
 	localStores := make(map[constants.AvailabilityZone][]consistent.RkvNode)
@@ -87,6 +88,9 @@ func (c *KVConfiguration) GetReplications() (map[constants.AvailabilityZone][]co
 			storeLatency = latencyResult.Summary.Success.Average / 1000000
 		}
 
+		if c.StoreType != constants.Redis {
+			target = store.Name
+		}
 		if storeLatency < c.RemoteStoreLatencyThresholdInMilliSec {
 			if _, found := localStores[store.AvailabilityZone]; !found {
 				locals := make([]consistent.RkvNode, 0)
