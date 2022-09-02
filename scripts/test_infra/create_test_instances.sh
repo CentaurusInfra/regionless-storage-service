@@ -121,6 +121,7 @@ provision_storage_instances() {
     INSTANCE_IDX=0
     for i in "${!StoreRegions[@]}"; do 
         REGION_I=${StoreRegions[$i]}
+        AZ_I=${StoreAvailabilityZones[$i]}
         COUNT_I=${StoreCounts[$i]}
         NAME_PREFIX_I=${StoreNamePrefixs[$i]}
         INSTANCE_TYPE_I=${StoreInstanceTypes[$i]}
@@ -134,7 +135,7 @@ provision_storage_instances() {
             ready_si_tags+=($INSTANCE_TAG)
             ready_si_hosts+=($host)
             ready_si_regions+=($REGION_I)
-	    
+            ready_si_azs+=($AZ_I)
             
 	    ((INSTANCE_IDX+=1))
         done
@@ -203,18 +204,26 @@ setup_config() {
                   --argjson bucketsize 10 \
                   --arg storetype "redis" \
                   --argjson concurrent true \
-                  --argjson replicanum 2 \
+                  --arg hashingmanagertype "syncAsync" \
+                  --arg pipingtype "localSyncRemoteAsync" \
+                  --argjson remotestorelatencythresholdinmillisec 50 \
+                  --argjson localreplicanum 2 \
+				  --argjson remotereplicanum 1 \
                   --argjson stores "[]" \
-	          '{"ConsistentHash": $hashing, "BucketSize": $bucketsize, "ReplicaNum": $replicanum, "StoreType": $storetype, "Concurrent": $concurrent, "Stores": $stores}'
+	          '{"ConsistentHash": $hashing, "BucketSize": $bucketsize, "LocalReplicaNum": $localreplicanum, "RemoteReplicaNum": $remotereplicanum, "StoreType": $storetype, "Concurrent": $concurrent, "HashingManagerType": $hashingmanagertype, "PipingType": $pipingtype, "RemoteStoreLatencyThresholdInMilliSec": $remotestorelatencythresholdinmillisec, "Stores": $stores}'
     )
 
     for i in "${!ready_si_hosts[@]}"; do
         local ip=${ready_si_hosts[$i]}
+        local region=${ready_si_regions[$i]}
+        local az=${ready_si_azs[$i]}
         local t=${ready_si_tags[$i]}
         inner=$(jq -n --arg name $t \
     	    --arg host $ip \
+            --arg regionname $region \
+            --arg azname $az \
           --argjson port 6666 \
-    	    '{"Name": $name, "Host": $host, "Port": $port}'
+            '{"Region": $regionname, "AvailabilityZone": $azname, "Name": $name, "Host": $host, "Port": $port}'
         )
         config="$(jq --argjson val "$inner" '.Stores += [$val]' <<< "$config")"
     done

@@ -9,6 +9,7 @@ read_region_configs() {
 
 read_stores() {
     readarray -t StoreRegions < <(jq -r '.Stores[].Region' ${SI_DEF_FILE}) 
+    readarray -t StoreAvailabilityZones < <(jq -r '.Stores[].AvailabilityZone' ${SI_DEF_FILE})
     readarray -t StoreCounts < <(jq -r '.Stores[].Count' ${SI_DEF_FILE}) 
     readarray -t StorePorts < <(jq -r '.Stores[].Port' ${SI_DEF_FILE}) 
     readarray -t StoreInstanceTypes < <(jq -r '.Stores[].InstanceType' ${SI_DEF_FILE}) 
