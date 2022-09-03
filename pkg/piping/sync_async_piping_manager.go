@@ -162,9 +162,11 @@ func splitStores(stores []string) ([]string, []string, error) {
 		return syncNodes, asyncNodes, fmt.Errorf("no stores in the revision")
 	}
 	syncNodes = strings.Split(stores[0], ",")
+	// The first store item is for sync nodes
 	if len(syncNodes) < 1 {
 		return syncNodes, asyncNodes, fmt.Errorf("no sync stores in the revision")
 	}
+	// The second store item is for async nodes
 	if len(stores) == 2 {
 		asyncNodes = strings.Split(stores[1], ",")
 	}
