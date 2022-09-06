@@ -44,6 +44,9 @@ func FactoryWithNameAndLatency(databaseType constants.StoreType, name string, la
 	case constants.Memory:
 		return NewMemDatabase(name), nil
 	case constants.DummyLatency: // simulator database backend suitable for internal perf load test
+		if db, ok := Storages[name]; ok {
+			return db, nil
+		}
 		return newLatencyDummyDatabase(latency), nil
 	default:
 		return nil, &DatabaseNotImplementedError{databaseType.Name()}
