@@ -16,6 +16,7 @@ config_ycsb_fn() {
 create_jaeger_vm() {
     jaeger_vmid=$(aws ec2 run-instances \
       --region ${JAEGER_REGION} \
+      --placement  "AvailabilityZone=${JAEGER_AZ}" \
       --image-id ${JAEGER_AMI} \
       --security-groups ${SECURITY_GROUP} \
       --instance-type ${JAEGER_INSTANCE_TYPE} \
@@ -30,6 +31,7 @@ create_jaeger_vm() {
 create_ycsb_vm() {
     ycsb_vmid=$(aws ec2 run-instances \
       --region ${YCSB_REGION} \
+      --placement  "AvailabilityZone=${YCSB_AZ}" \
       --image-id ${YCSB_AMI} \
       --security-groups ${SECURITY_GROUP} \
       --instance-type ${YCSB_INSTANCE_TYPE} \

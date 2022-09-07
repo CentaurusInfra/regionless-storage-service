@@ -48,7 +48,7 @@ find_key_file() {
         fi	   
     done
     if [ "$found" = true ] ; then
-        echo "${KeyFiles[$region_idx]}"
+        echo "${KeyFiles[$region_idx]}" # this is a return value. do not add additional text 
     else
         echo "key file not found for region $1"
     fi
