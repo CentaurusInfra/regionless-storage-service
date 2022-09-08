@@ -34,7 +34,7 @@ func initPool(host string, port int) (string, *redis.Pool) {
 		Dial: func() (redis.Conn, error) {
 			conn, err := redis.Dial("tcp", url)
 			for retries := 0; err != nil && retries < 5; retries++ {
-				time.Sleep((50 << retries) * time.Millisecond)
+				time.Sleep((10 << retries) * time.Millisecond)
 				if conn, err = redis.Dial("tcp", url); err == nil {
 					if _, err = conn.Do("PING"); err != nil {
 						log.Printf("ERROR: fail to ping redis %s: %v after %d retries\n", url, err, retries+1)
@@ -44,7 +44,6 @@ func initPool(host string, port int) (string, *redis.Pool) {
 				}
 			}
 			return conn, err
-
 		},
 	}
 	fmt.Printf("The url is %s and the pool is %v\n", url, pool)
