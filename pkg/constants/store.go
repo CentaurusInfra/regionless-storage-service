@@ -15,6 +15,6 @@ const (
 )
 
 const (
-	RetryCount                  int           = 5
-	RetryIntervalInMilliseconds time.Duration = 10 * time.Millisecond
+	RedisRetryCount    int           = 5
+	RedisRetryInterval time.Duration = 10 * time.Millisecond
 )
