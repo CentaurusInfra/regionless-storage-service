@@ -2,12 +2,14 @@
 set -euo pipefail
 
 launch_rkv_fn() {
+    echo 524288 | sudo tee /proc/sys/net/netfilter/nf_conntrack_max
     jaeger_vmip=$1
     cp /tmp/config.json ~/regionless-storage-service/cmd/http/config.json
     nohup ~/regionless-storage-service/main --jaeger-server=http://${jaeger_vmip}:14268 >/tmp/rkv.log 2>&1 &
 }
 
 config_ycsb_fn() {
+    echo 524288 | sudo tee /proc/sys/net/netfilter/nf_conntrack_max
     rkv_vmip=$1
     sudo sed -i '/rkv/d' /etc/hosts
     echo ${rkv_vmip} rkv | sudo tee -a /etc/hosts > /dev/null

@@ -34,13 +34,12 @@ func initPool(host string, port int) (string, *redis.Pool) {
 		Dial: func() (redis.Conn, error) {
 			conn, err := redis.Dial("tcp", url)
 			for retries := 0; err != nil && retries < 5; retries++ {
+				log.Printf("ERROR: failed to init the redis %s connection with error %v after %d times\n", url, err, retries+1)
 				time.Sleep((10 << retries) * time.Millisecond)
 				if conn, err = redis.Dial("tcp", url); err == nil {
 					if _, err = conn.Do("PING"); err != nil {
-						log.Printf("ERROR: fail to ping redis %s: %v after %d retries\n", url, err, retries+1)
+						log.Printf("ERROR: failed to ping redis %s: %v after %d retries\n", url, err, retries+1)
 					}
-				} else {
-					log.Printf("ERROR: fail init redis: %v after %d retries\n", err, retries+1)
 				}
 			}
 			return conn, err
