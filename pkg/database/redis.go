@@ -8,6 +8,7 @@ import (
 
 	"github.com/gomodule/redigo/redis"
 	"github.com/regionless-storage-service/pkg/config"
+	"github.com/regionless-storage-service/pkg/constants"
 )
 
 var (
@@ -33,9 +34,10 @@ func initPool(host string, port int) (string, *redis.Pool) {
 		MaxActive: 12000,
 		Dial: func() (redis.Conn, error) {
 			conn, err := redis.Dial("tcp", url)
-			for retries := 0; err != nil && retries < 5; retries++ {
+			for retries := 0; err != nil && retries < constants.RetryCount; retries++ {
 				log.Printf("ERROR: failed to init the redis %s connection with error %v after %d times\n", url, err, retries+1)
-				time.Sleep((10 << retries) * time.Millisecond)
+				interval := constants.RetryIntervalInMilliseconds << retries
+				time.Sleep(interval * time.Millisecond)
 				if conn, err = redis.Dial("tcp", url); err == nil {
 					if _, err = conn.Do("PING"); err != nil {
 						log.Printf("ERROR: failed to ping redis %s: %v after %d retries\n", url, err, retries+1)
