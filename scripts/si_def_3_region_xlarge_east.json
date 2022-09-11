@@ -31,32 +31,32 @@
       "Region": "us-east-1",
       "AvailabilityZone": "us-east-1a",
       "Port": 6666,
-      "Count": 2,
-      "InstanceType": "t2.micro"
+      "Count": 3,
+      "InstanceType": "t2.xlarge"
     },
     {
       "NamePrefix": "rkv-lab-si",
       "Region": "us-east-1",
       "AvailabilityZone": "us-east-1b",
       "Port": 6666,
-      "Count": 2,
-      "InstanceType": "t2.micro"
+      "Count": 3,
+      "InstanceType": "t2.xlarge"
     },
     {
       "NamePrefix": "rkv-lab-si",
       "Region": "us-east-2",
       "AvailabilityZone": "us-east-2a",
       "Port": 6666,
-      "Count": 2,
-      "InstanceType": "t2.micro"
+      "Count": 3,
+      "InstanceType": "t2.xlarge"
     },
     {
       "NamePrefix": "rkv-lab-si",
       "Region": "us-west-1",
       "AvailabilityZone": "us-west-1b",
       "Port": 6666,
-      "Count": 2,
-      "InstanceType": "t2.micro"
+      "Count": 3,
+      "InstanceType": "t2.xlarge"
     }
   ]
 }
