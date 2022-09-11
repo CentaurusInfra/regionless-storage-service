@@ -27,7 +27,7 @@ create_jaeger_vm() {
       --block-device-mappings "DeviceName=/dev/sda1,Ebs={VolumeSize=${JAEGER_ROOT_DISK_VOLUME}}" \
       --output text \
       --query 'Instances[*].InstanceId')
-    aws ec2 wait instance-status-ok --instance-ids ${jaeger_vmid}
+    aws ec2 --region ${JAEGER_REGION} wait instance-status-ok --instance-ids ${jaeger_vmid}
 }
 
 create_ycsb_vm() {
@@ -42,7 +42,7 @@ create_ycsb_vm() {
       --block-device-mappings "DeviceName=/dev/sda1,Ebs={VolumeSize=${YCSB_ROOT_DISK_VOLUME}}" \
       --output text \
       --query 'Instances[*].InstanceId')
-    aws ec2 wait instance-status-ok --instance-ids ${ycsb_vmid}
+    aws ec2 --region ${YCSB_REGION} wait instance-status-ok --instance-ids ${ycsb_vmid}
 }
 
 source common.sh 
@@ -100,12 +100,14 @@ wait
 
 jaeger_vmip=$(aws ec2 describe-instances \
   --filters "Name=tag-value,Values=${JAEGER_VM_NAME}" "Name=instance-state-name,Values=running" \
+  --region ${JAEGER_REGION} \
   --query "Reservations[].Instances[].NetworkInterfaces[].PrivateIpAddresses[].Association.PublicIp" \
   --output text)
 print_green "jaeger vm provisioned, ip addr is ${jaeger_vmip}"
 
 ycsb_vmip=$(aws ec2 describe-instances \
   --instance-ids ${ycsb_vmid} \
+  --region ${YCSB_REGION} \
   --filters "Name=tag-value,Values=${YCSB_VM_NAME}" "Name=instance-state-name,Values=running" \
   --query "Reservations[].Instances[].NetworkInterfaces[].PrivateIpAddresses[].Association.PublicIp" \
   --output text)
@@ -117,6 +119,7 @@ print_green "ycsb vm provisioned, ip addr is ${ycsb_vmip}"
 rkv_vmid=$(aws ec2 describe-instances --filters "Name=tag:Name, Values=${RKV_VM_NAME}" "Name=instance-state-name,Values=running" --output text --query 'Reservations[*].Instances[*].InstanceId')
 aws ec2 wait instance-status-ok --instance-ids ${rkv_vmid}
 rkv_vmip=$(aws ec2 describe-instances \
+  --region ${RKV_REGION} \
   --filters "Name=tag-value,Values=${RKV_VM_NAME}" "Name=instance-state-name,Values=running" \
   --query "Reservations[].Instances[].NetworkInterfaces[].PrivateIpAddresses[].Association.PublicIp" \
   --output text)
