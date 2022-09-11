@@ -1,0 +1,52 @@
+set -u
+
+## aws ec2 key pair name
+## e.g. KEY_NAME=hwchen01
+: $KEY_NAME
+: $KEY_FILE     #~/.ssh/aws-hwchen01.pem
+: $NAME_TAG
+
+export KEY_NAME KEY_FILE NAME_TAG
+
+export SI_DEF_FILE=../si_def.json
+
+## common to lab
+export SECURITY_GROUP=regionless_kv_service
+export LAB_TAG=rkv_perf_lab                #todo: use it to tag all vms of perf lab
+
+## of redis backends
+export NUM_OF_SI=2 
+
+## disk size
+export SI_ROOT_DISK_VOLUME=32
+
+## rkv service
+export RKV_INSTANCE_TYPE=t2.xlarge
+export RKV_AMI=ami-0729e439b6769d6ab       #hw-ami-rkv-test2
+export RKV_VM_NAME=${NAME_TAG}-rkv-lab-rkv
+export RKV_REGION=us-east-1
+export RKV_AZ=us-east-1a
+export RKV_ROOT_DISK_VOLUME=32
+
+## of jaeger server
+export JAEGER_REGION=us-east-1
+export JAEGER_AZ=us-east-1a
+export JAEGER_AMI=ami-0709d88d3f477f93c   #hw-ami-jaeger5
+export JAEGER_INSTANCE_TYPE=t2.xlarge
+export JAEGER_ROOT_DISK_VOLUME=200
+export JAEGER_VM_NAME=${NAME_TAG}-rkv-lab-jaeger
+
+## of prometheus server
+
+## of go-ycsb client
+export YCSB_REGION=us-east-1
+export YCSB_AZ=us-east-1a
+export YCSB_AMI=ami-0f1c5fdb1989bb81b 	    #hw-ami-go-ycsb5
+export YCSB_INSTANCE_TYPE=t2.xlarge
+export YCSB_ROOT_DISK_VOLUME=16
+export YCSB_VM_NAME=${NAME_TAG}-rkv-lab-ycsb
+
+## logging
+export GREEN='\033[0;32m'
+export LIGHT_GREEN='\033[1;32m'
+export NC='\033[0m' # No Color
