@@ -109,9 +109,16 @@ provision_storage_instances() {
         INSTANCE_TYPE_I=${StoreInstanceTypes[$i]}
         PORT_I=${StorePorts[$i]}
         LOG_NAME=si.log
+        ANTI_THROTTLE_PAUSE=45
+        ANTI_THROTTLE_GROUP_SIZE=12
 
         for (( j=1; j<=$COUNT_I; j++ ))
         do 
+            if ! ((j % $ANTI_THROTTLE_GROUP_SIZE)); then
+		echo sleeping $ANTI_THROTTLE_PAUSE sec to avoid throttling
+	        sleep $ANTI_THROTTLE_PAUSE;
+	    fi
+
             INSTANCE_TAG="${NAME_TAG}-${NAME_PREFIX_I}-${INSTANCE_IDX}"
             echo "ˁ˚ᴥ˚ˀ provisioning storage host ${INSTANCE_TAG} in region ${REGION_I} and AZ ${AZ_I}, see log ${LOG_NAME} for details"
 	    provision_a_storage_instance ${REGION_I} ${AZ_I} ${INSTANCE_TAG} ${INSTANCE_TYPE_I} ${PORT_I} >> ${LOG_NAME} 2>&1 &
