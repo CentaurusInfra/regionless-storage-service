@@ -41,7 +41,7 @@ export JAEGER_VM_NAME=${NAME_TAG}-rkv-lab-jaeger
 ## of go-ycsb client
 export YCSB_REGION=us-west-2
 export YCSB_AZ=us-west-2b
-export YCSB_AMI=ami-03fadfb192c131dc0 	    #hw-ami-go-ycsb5
+export YCSB_AMI=ami-0adacc6121d78daba       #hw-ami-ycsb-6
 export YCSB_INSTANCE_TYPE=t2.2xlarge
 export YCSB_ROOT_DISK_VOLUME=16
 export YCSB_VM_NAME=${NAME_TAG}-rkv-lab-ycsb
