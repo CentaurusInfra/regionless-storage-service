@@ -1,0 +1,3 @@
+[submodule "validation/porcupine"]
+	path = validation/porcupine
+	url = https://github.com/kxu1985/porcupine-rkv
