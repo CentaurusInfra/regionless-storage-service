@@ -9,6 +9,23 @@ Example:
     - Parameters: `localreplicanum`, `remotereplicanum`, `remotestorelatencythresholdinmillisec`
 - Modify read behaviors if necessary
     - In `pkg/piping/sync_async_piping_manager.go`
+    - An example of reading from a random selected sync node
+    ```
+    func (sap *SyncAsyncPiping) Read(ctx context.Context, rev index.Revision) (string, error) {
+        ...
+        target := ""
+        if len(syncNodes) > 0 {
+                rand.Seed(time.Now().UnixNano()) 
+                inx := rand.Intn(len(syncNodes)) 
+                target = syncNodes[inx]
+        } else if len(asyncNodes) > 0 {
+                target = asyncNodes[0]
+        } else {
+                return "", fmt.Errorf("the rev %v does not have any nodes", rev)
+        }
+        ...
+    }
+    ```
 
 ## STEP 2: Build code and run consistency tests
 - `$cd validation`

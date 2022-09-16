@@ -14,6 +14,8 @@ import (
 )
 
 const URL = "http://localhost:8090/kv"
+const INT_BASE = 10
+const INTER_OPS_MAX_DURATION_MS = 200
 
 var DURATION int64 // in nanosecond
 var CLIENT_ID string
@@ -39,13 +41,13 @@ func Read() string {
 
 	value := strings.Split(strings.Split(string(body), "is ")[1], " with")[0]
 	revision := strings.Split(strings.Split(string(body), "revision ")[1], "\n")[0]
-	//log.Println("read", value, start, end, CLIENT_ID)
+
 	output := "read," +
 		value + "," +
-		strconv.FormatInt(int64(start), 10) + "," +
-		strconv.FormatInt(int64(end), 10) + "," +
+		strconv.FormatInt(int64(start), INT_BASE) + "," +
+		strconv.FormatInt(int64(end), INT_BASE) + "," +
 		CLIENT_ID + "," +
-		strconv.FormatInt(EVENT_ID, 10) + "," +
+		strconv.FormatInt(EVENT_ID, INT_BASE) + "," +
 		revision
 	return output
 }
@@ -53,7 +55,7 @@ func Read() string {
 func Write() string {
 	payload, err := json.Marshal(map[string]interface{}{
 		"key":   KEY,
-		"value": strconv.FormatInt(int64(rand.Intn(1000)), 10),
+		"value": strconv.FormatInt(int64(rand.Intn(1000)), INT_BASE),
 	})
 	checkFatal(err)
 
@@ -73,14 +75,13 @@ func Write() string {
 
 	value := strings.Split(strings.Split(string(body), ")")[0], ",")[1]
 	revision := strings.Split(strings.Split(string(body), "revision ")[1], " at")[0]
-	//log.Println("write", value, start, end, CLIENT_ID)
-	//fmt.Println(revision)
+
 	output := "write," +
 		value + "," +
-		strconv.FormatInt(int64(start), 10) + "," +
-		strconv.FormatInt(int64(end), 10) + "," +
+		strconv.FormatInt(int64(start), INT_BASE) + "," +
+		strconv.FormatInt(int64(end), INT_BASE) + "," +
 		CLIENT_ID + "," +
-		strconv.FormatInt(EVENT_ID, 10) + "," +
+		strconv.FormatInt(EVENT_ID, INT_BASE) + "," +
 		revision
 	return output
 }
@@ -88,7 +89,7 @@ func Write() string {
 func main() {
 	args := os.Args
 	CLIENT_ID = args[1]
-	_duration, err := strconv.ParseInt(args[2], 10, 64)
+	_duration, err := strconv.ParseInt(args[2], INT_BASE, 64)
 	DURATION = _duration * 1000000000
 	KEY = args[3]
 
@@ -125,8 +126,8 @@ func main() {
 			}
 		}
 
-		// sleep for some random duration
-		time.Sleep(time.Duration(rand.Intn(200)) * time.Millisecond)
+		// sleep for simulating random inter-operation durations
+		time.Sleep(time.Duration(rand.Intn(INTER_OPS_MAX_DURATION_MS)) * time.Millisecond)
 	}
 
 	f.Close()
