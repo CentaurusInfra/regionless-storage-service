@@ -8,19 +8,20 @@ create_ec2_instance(){
     local k_name=$(find_key_name $1)
 
     output=`aws ec2 run-instances --region $1 \
+	    --placement  "AvailabilityZone=$2" \
 	    --image-id $ami \
 	    --security-group-ids $SECURITY_GROUP \
-	    --instance-type $3\
+	    --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$3}]" \
+	    --instance-type $4\
 	    --key-name $k_name  \
-	    --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$2}]" \
-	    				--block-device-mappings "DeviceName=/dev/sda1,Ebs={VolumeSize=${ROOT_DISK_VOLUME}}" \
+	    --block-device-mappings "DeviceName=/dev/sda1,Ebs={VolumeSize=${ROOT_DISK_VOLUME}}" \
 	    `	# end block 
 
     instance_id=`jq '.Instances[0].InstanceId' <<< $output`
     instance_id=`sed -e 's/^"//' -e 's/"$//' <<<"$instance_id"`	# remove double quote from string $instance_id
 
     [[ -z "$instance_id" ]] && { echo "invalid instance_id " ; exit 1; }
-    echo "just launched: ${instance_id} in region $1"
+    echo "just launched: ${instance_id} in region $1 az $2"
     
     state=""
     while [[ "$state" == "" ]]
@@ -28,7 +29,7 @@ create_ec2_instance(){
 	    echo "waiting for 3 sec"
 	    sleep 3 
 	    state=`aws ec2 describe-instances --region $1 \
-		    --instance-ids $instance_id \
+		    --instance-ids ${instance_id} \
 		    --filters "Name=instance-state-name,Values=running" \
 		    --output text`
     done
@@ -88,8 +89,9 @@ validate_redis_up(){
 }
 
 provision_a_storage_instance() {
-    #${REGION_I} ${INSTANCE_TAG} ${INSTANCE_TYPE_I} ${PORT_I}
-    create_ec2_instance $1 $2 $3	# this func assigns value $host_public_ip
+    # ${REGION_I} ${AZ_I} ${INSTANCE_TAG} ${INSTANCE_TYPE_I} ${PORT_I}
+    # ${PORT_I} to be used later. hardcoded to 6666 at the time
+    create_ec2_instance $1 $2 $3 $4	# this func assigns value $host_public_ip
     install_storage_binaries $1 $host_public_ip
     validate_redis_up $1 $host_public_ip
 }
@@ -101,6 +103,7 @@ provision_storage_instances() {
     INSTANCE_IDX=0
     for i in "${!StoreRegions[@]}"; do 
         REGION_I=${StoreRegions[$i]}
+        AZ_I=${StoreAvailabilityZones[$i]}
         COUNT_I=${StoreCounts[$i]}
         NAME_PREFIX_I=${StoreNamePrefixs[$i]}
         INSTANCE_TYPE_I=${StoreInstanceTypes[$i]}
@@ -110,11 +113,10 @@ provision_storage_instances() {
         for (( j=1; j<=$COUNT_I; j++ ))
         do 
             INSTANCE_TAG="${NAME_TAG}-${NAME_PREFIX_I}-${INSTANCE_IDX}"
-            echo "ˁ˚ᴥ˚ˀ provisioning storage host ${INSTANCE_TAG} in region ${REGION_I}, see log ${LOG_NAME} for details"
-	    provision_a_storage_instance ${REGION_I} ${INSTANCE_TAG} ${INSTANCE_TYPE_I} ${PORT_I} >> ${LOG_NAME} 2>&1 & 
+            echo "ˁ˚ᴥ˚ˀ provisioning storage host ${INSTANCE_TAG} in region ${REGION_I} and AZ ${AZ_I}, see log ${LOG_NAME} for details"
+	    provision_a_storage_instance ${REGION_I} ${AZ_I} ${INSTANCE_TAG} ${INSTANCE_TYPE_I} ${PORT_I} >> ${LOG_NAME} 2>&1 &
             ((INSTANCE_IDX+=1))
         done
-
     done
     wait
     
@@ -130,7 +132,7 @@ provision_storage_instances() {
         do 
             INSTANCE_TAG="${NAME_TAG}-${NAME_PREFIX_I}-${INSTANCE_IDX}"
             local host=`aws ec2 describe-instances --region ${REGION_I} --query 'Reservations[].Instances[].PublicIpAddress' \
-	   					--filters "Name=tag-value,Values=${INSTANCE_TAG}" "Name=instance-state-name,Values=running" \
+	   					--filters "Name=tag-value,Values=${INSTANCE_TAG}" "Name=instance-state-name,Values=running" "Name=availability-zone,Values=${AZ_I}" \
 	    					--output=text`
             ready_si_tags+=($INSTANCE_TAG)
             ready_si_hosts+=($host)
@@ -147,8 +149,9 @@ provision_storage_instances() {
 
     for i in "${!ready_si_hosts[@]}"; do
         local r=${ready_si_regions[$i]}
+        local z=${ready_si_azs[$i]}
         local h=${ready_si_hosts[$i]}
-        print_light_green "$h in region $r" 
+        print_light_green "$h in region $r az $z" 
     done
 }
 
@@ -168,8 +171,8 @@ setup_rkv_env() {
 
 provision_a_rkv_instance() {
     repo_path=$REPO_ROOT
-    #${REGION_I} ${INSTANCE_TAG} ${INSTANCE_TYPE_I} ${PORT_I}
-    create_ec2_instance ${RKV_REGION} ${INSTANCE_TAG} ${INSTANCE_TYPE}	# this func assigns value $host_public_ip
+    # ${REGION_I} ${AZ} ${INSTANCE_TAG} ${INSTANCE_TYPE_I} ${PORT_I}
+    create_ec2_instance ${RKV_REGION} ${RKV_AZ} ${INSTANCE_TAG} ${INSTANCE_TYPE}	# this func assigns value $host_public_ip
     
     until ssh -i $KEY_FILE -o "StrictHostKeyChecking no" ubuntu@$host_public_ip "sudo apt -y update >> /tmp/rkv.log 2>&1"; do
         echo "ssh not ready, retry in 3 sec"    
@@ -187,7 +190,7 @@ provision_rkv_instances() {
     provision_a_rkv_instance >${log_name} 2>&1
     
     hosts=`aws ec2 describe-instances --region ${RKV_REGION} --query 'Reservations[].Instances[].PublicIpAddress' \
-    					--filters "Name=tag-value,Values=${INSTANCE_TAG}" "Name=instance-state-name,Values=running" \
+	    				--filters "Name=tag-value,Values=${INSTANCE_TAG}" "Name=instance-state-name,Values=running" "Name=availability-zone,Values=${RKV_AZ}" \
     					--output=text`
     read -ra ready_rkv_hosts<<< "$hosts" # split by whitespaces
 
