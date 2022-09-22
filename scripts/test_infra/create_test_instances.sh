@@ -3,6 +3,42 @@
 source ../common.sh
 source ./multi_region_config.sh 
 
+create_rkv_ec2_instance(){
+    local ami=ami-0f1c5fdb1989bb81b
+    local k_name=$(find_key_name $1)
+
+    output=`aws ec2 run-instances --region $1 \
+	    --placement  "AvailabilityZone=$2" \
+	    --image-id $ami \
+	    --security-group-ids $SECURITY_GROUP \
+	    --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$3}]" \
+	    --instance-type $4\
+	    --key-name $k_name  \
+	    --block-device-mappings "DeviceName=/dev/sda1,Ebs={VolumeSize=${ROOT_DISK_VOLUME}}" \
+	    `	# end block 
+
+    instance_id=`jq '.Instances[0].InstanceId' <<< $output`
+    instance_id=`sed -e 's/^"//' -e 's/"$//' <<<"$instance_id"`	# remove double quote from string $instance_id
+
+    [[ -z "$instance_id" ]] && { echo "invalid instance_id " ; exit 1; }
+    echo "just launched: ${instance_id} in region $1 az $2"
+    
+    state=""
+    while [[ "$state" == "" ]]
+    do
+	    echo "waiting for 3 sec"
+	    sleep 3 
+	    state=`aws ec2 describe-instances --region $1 \
+		    --instance-ids ${instance_id} \
+		    --filters "Name=instance-state-name,Values=running" \
+		    --output text`
+    done
+    host_public_ip=`aws ec2 describe-instances --region $1 \
+			--instance-ids ${instance_id} \
+			--query 'Reservations[].Instances[].PublicIpAddress' --output=text`
+    echo "${instance_id} is running, public ip is ${host_public_ip}"
+}
+
 create_ec2_instance(){
     local ami=$(find_ami $1)
     local k_name=$(find_key_name $1)
@@ -179,7 +215,7 @@ setup_rkv_env() {
 provision_a_rkv_instance() {
     repo_path=$REPO_ROOT
     # ${REGION_I} ${AZ} ${INSTANCE_TAG} ${INSTANCE_TYPE_I} ${PORT_I}
-    create_ec2_instance ${RKV_REGION} ${RKV_AZ} ${INSTANCE_TAG} ${INSTANCE_TYPE}	# this func assigns value $host_public_ip
+    create_rkv_ec2_instance ${RKV_REGION} ${RKV_AZ} ${INSTANCE_TAG} ${INSTANCE_TYPE}	# this func assigns value $host_public_ip
     
     until ssh -i $KEY_FILE -o "StrictHostKeyChecking no" ubuntu@$host_public_ip "sudo apt -y update >> /tmp/rkv.log 2>&1"; do
         echo "ssh not ready, retry in 3 sec"    

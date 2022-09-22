@@ -22,6 +22,7 @@ export SI_ROOT_DISK_VOLUME=32
 
 ## rkv service
 export RKV_INSTANCE_TYPE=m5a.8xlarge
+#export RKV_AMI=ami-0729e439b6769d6ab       #hw-ami-rkv-test2
 export RKV_AMI=ami-0f1c5fdb1989bb81b 
 export RKV_VM_NAME=${NAME_TAG}-rkv-lab-rkv
 export RKV_REGION=us-east-1
