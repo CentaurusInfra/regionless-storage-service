@@ -7,8 +7,8 @@ then
     exit 0
 fi
 
-svc_cfg=test-lab.val.$2
-si_cfg=si_def_$1_region_$2.json
+svc_cfg=./config_examples/test-lab.val.$2
+si_cfg=./config_examples/si_def_$1_region_$2.json
 
 if [[ -f $svc_cfg && -f $si_cfg ]]; then
     svc_soft_link=test-lab.val
