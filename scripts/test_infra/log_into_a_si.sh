@@ -8,7 +8,7 @@ then
     region="$3"
     zone="$4"
 else
-    echo "need two arguments: [si index] [ec2 vm tag prefix] [US region, e.g. west] [US zone, e.g. 2]"
+    echo "need arguments: [si index] [ec2 vm tag prefix] [US region, e.g. west] [US zone, e.g. 2]"
     exit 1
 fi
 

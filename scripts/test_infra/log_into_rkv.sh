@@ -6,7 +6,7 @@ then
     region="$2"
     zone="$3"
 else
-    echo "need one arguments: [ec2 vm tag prefix] [US region, e.g. west] [US zone, e.g. 2]"
+    echo "need arguments: [ec2 vm tag prefix] [US region, e.g. west] [US zone, e.g. 2]"
     echo "example: ./log_into_rkv.sh pengd west 2"
     exit 1
 fi

@@ -1,10 +1,10 @@
-#!/bin/bash
+!/bin/bash
 
 source ../common.sh
 source ./multi_region_config.sh 
 
 create_rkv_ec2_instance(){
-    local ami=ami-0f1c5fdb1989bb81b
+    local ami=$(find_ami $1) 
     local k_name=$(find_key_name $1)
 
     output=`aws ec2 run-instances --region $1 \
