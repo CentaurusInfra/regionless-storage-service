@@ -7,7 +7,7 @@
     "LocalReplicaNum": 2,
     "//" : "The number of remote replica from the ones whose latency is more than or equals to RemoteStoreLatencyThresholdInMilliSec",
     "RemoteReplicaNum": 1,
-    "StoreType": "redis",
+    "StoreType": "mem",
     "Concurrent": true,
     "RemoteStoreLatencyThresholdInMilliSec": 100,
     "Stores": [
