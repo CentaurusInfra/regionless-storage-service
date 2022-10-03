@@ -17,6 +17,9 @@ type Index interface {
 	RangeSince(ctx context.Context, key, end []byte, rev int64) []Revision
 	Tombstone(ctx context.Context, key []byte, rev Revision) error
 	Equal(b Index) bool
+
+	// Update updates index of key only when the known its latest revision is assumed
+	Update(ctx context.Context, key []byte, rev Revision, revAssumed int64) error
 }
 
 type treeIndex struct {
@@ -197,4 +200,22 @@ func (a *treeIndex) Equal(bi Index) bool {
 	})
 
 	return equal
+}
+
+func (ti *treeIndex) Update(ctx context.Context, key []byte, rev Revision, revAssumed int64) error {
+	_, span := otel.Tracer(config.TraceName).Start(ctx, "update index")
+	defer span.End()
+
+	keyi := &keyIndex{key: key}
+
+	ti.RLock()
+	defer ti.RUnlock()
+
+	item := ti.tree.Get(keyi)
+	if item == nil {
+		return ErrRevisionNotFound
+	}
+
+	keyi = item.(*keyIndex)
+	return keyi.update(rev.main, rev.sub, rev.nodes, revAssumed)
 }
