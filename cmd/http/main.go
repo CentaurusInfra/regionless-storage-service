@@ -232,6 +232,17 @@ func (handler *KeyValueHandler) createKV(w http.ResponseWriter, r *http.Request)
 	ctx, rootSpan := otel.Tracer(config.TraceName).Start(r.Context(), "createKV")
 	defer rootSpan.End()
 
+	// check if the request is to update on top of specific latest revision
+	var revAssumed int64
+	revParam := r.URL.Query().Get("rev")
+	if len(revParam) != 0 {
+		var err error
+		revAssumed, err = strconv.ParseInt(revParam, 10, 64)
+		if err != nil {
+			return "", fmt.Errorf("invalid rev in query string: %s", revParam)
+		}
+	}
+
 	rev := revision.GetGlobalIncreasingRevision()
 	newRev := index.NewRevision(int64(rev), 0, nil)
 	primRev := handler.getPrimaryRevBytesWithBucket(newRev)
@@ -268,11 +279,16 @@ func (handler *KeyValueHandler) createKV(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	if err = handler.indexTree.Put(ctx, []byte(payload["key"]), newRev); err != nil {
+	if len(revParam) != 0 {
+		err = handler.indexTree.Update(ctx, []byte(payload["key"]), newRev, revAssumed)
+	} else {
+		err = handler.indexTree.Put(ctx, []byte(payload["key"]), newRev)
+	}
+
+	if err != nil {
 		// todo: cleanup writes on nodes
 		return "", err
 	}
-
 	return fmt.Sprintf("The key value pair (%s,%s) has been saved as revision %s at %s\n", payload["key"], payload["value"], strconv.FormatUint(rev, 10), strings.Join(newRev.GetNodes(), ",")), err
 }
 

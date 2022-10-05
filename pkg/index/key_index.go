@@ -240,6 +240,16 @@ func (a *keyIndex) equal(b *keyIndex) bool {
 	return true
 }
 
+func (ki *keyIndex) update(main int64, sub int64, nodes []string, revAssumed int64) error {
+	revLatest := ki.modified.main
+	if revLatest != revAssumed {
+		return fmt.Errorf("the rev to assume is not the latest one")
+	}
+
+	ki.put(main, sub, nodes)
+	return nil
+}
+
 func (ki *keyIndex) String() string {
 	var s string
 	for _, g := range ki.generations {
