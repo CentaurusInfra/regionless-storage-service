@@ -16,7 +16,7 @@ import (
 const URL = "http://localhost:8090/kv"
 const INT_BASE = 10
 const INTER_OPS_MAX_DURATION_MS = 200
-const RETRY_COUNT = 10
+const RETRY_COUNT = 5
 const RETRY_INTERVAL = 10
 
 var DURATION int64 // in nanosecond
@@ -55,12 +55,10 @@ func checkFatal(e error) {
 func Read(consistency Constistency) string {
 	start := time.Now().UnixNano()
 	resp, err := http.Get(URL + "?key=" + KEY)
-
-	for retries := 0; err != nil && retries < RETRY_COUNT; retries++ {
+	value := ""
+	for retries := 0; consistency == Sequential && err != nil  &&  retries < RETRY_COUNT; retries++ {
 		time.Sleep(RETRY_INTERVAL << retries)
-		if resp, err = http.Get(URL + "?key=" + KEY); err == nil {
-			break
-		}
+		resp, err = http.Get(URL + "?key=" + KEY)
 	}
 	checkFatal(err)
 
@@ -70,7 +68,7 @@ func Read(consistency Constistency) string {
 	body, err := ioutil.ReadAll(resp.Body)
 	checkFatal(err)
 
-	value := strings.Split(strings.Split(string(body), "is ")[1], " with")[0]
+	value = strings.Split(strings.Split(string(body), "is ")[1], " with")[0]
 	revision := strings.Split(strings.Split(string(body), "revision ")[1], "\n")[0]
 
 	output := "read," +
@@ -127,7 +125,7 @@ func main() {
 	var consistency Constistency
 	var ok bool
 	if len(args) > 4 {
-		if consistency, ok = ParseConsistency(args[4]); ok {
+		if consistency, ok = ParseConsistency(args[4]); !ok {
 			log.Fatalf("The consistency %s is not expected", args[4])
 		}
 	} else {

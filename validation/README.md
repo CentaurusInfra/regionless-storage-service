@@ -31,7 +31,7 @@ Example:
 - `$cd validation`
 - `$go build consistency_log.go`
 - Modify the test parameters in `run_consistency.sh`: `num_clients`, `duration`, `key`
-- Run a test `$./run_consistency.sh`
+- Run a test `$./run_consistency.sh` (The default consistency is linearizable. If you want to run a sequential consistency test, please run `$./run_consistency.sh sequential` instead)
 - Log files will be generated per client under the current directory.
 
 ## STEP 3: Run porcupine tests for linearizability validation
