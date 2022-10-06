@@ -16,11 +16,35 @@ import (
 const URL = "http://localhost:8090/kv"
 const INT_BASE = 10
 const INTER_OPS_MAX_DURATION_MS = 200
+const RETRY_COUNT = 5
+const RETRY_INTERVAL = 10
 
 var DURATION int64 // in nanosecond
 var CLIENT_ID string
 var EVENT_ID int64
 var KEY string
+
+type Constistency string
+
+const (
+	Linearizable Constistency = "linearizable"
+	Sequential   Constistency = "sequential"
+)
+
+var (
+	consistencyMap = map[string]Constistency{
+		"linearizable": Linearizable,
+		"sequential":   Sequential,
+	}
+)
+
+func (c Constistency) Name() string {
+	return string(c)
+}
+func ParseConsistency(str string) (Constistency, bool) {
+	c, ok := consistencyMap[strings.ToLower(str)]
+	return c, ok
+}
 
 func checkFatal(e error) {
 	if e != nil {
@@ -28,9 +52,14 @@ func checkFatal(e error) {
 	}
 }
 
-func Read() string {
+func Read(consistency Constistency) string {
 	start := time.Now().UnixNano()
 	resp, err := http.Get(URL + "?key=" + KEY)
+	value := ""
+	for retries := 0; consistency == Sequential && err != nil  &&  retries < RETRY_COUNT; retries++ {
+		time.Sleep(RETRY_INTERVAL << retries)
+		resp, err = http.Get(URL + "?key=" + KEY)
+	}
 	checkFatal(err)
 
 	defer resp.Body.Close()
@@ -39,7 +68,7 @@ func Read() string {
 	body, err := ioutil.ReadAll(resp.Body)
 	checkFatal(err)
 
-	value := strings.Split(strings.Split(string(body), "is ")[1], " with")[0]
+	value = strings.Split(strings.Split(string(body), "is ")[1], " with")[0]
 	revision := strings.Split(strings.Split(string(body), "revision ")[1], "\n")[0]
 
 	output := "read," +
@@ -93,6 +122,16 @@ func main() {
 	DURATION = _duration * 1000000000
 	KEY = args[3]
 
+	var consistency Constistency
+	var ok bool
+	if len(args) > 4 {
+		if consistency, ok = ParseConsistency(args[4]); !ok {
+			log.Fatalf("The consistency %s is not expected", args[4])
+		}
+	} else {
+		consistency = Linearizable
+	}
+
 	rand.Seed(time.Now().UnixNano())
 
 	f, err := os.Create("./events_client_" + CLIENT_ID + ".log")
@@ -116,7 +155,7 @@ func main() {
 		} else {
 			// select a random operation
 			if rand.Intn(2) == 0 {
-				output = Read()
+				output = Read(consistency)
 				_, err := f.WriteString(output + "\n")
 				checkFatal(err)
 			} else {

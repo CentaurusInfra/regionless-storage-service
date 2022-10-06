@@ -83,6 +83,9 @@ func (rd *RedisDatabase) Get(key string) (string, error) {
 	defer conn.Close()
 
 	if resp, err := conn.Do("Get", key); err == nil {
+		if resp == nil {
+			return "", fmt.Errorf("The value for the key %s is empty!", key)
+		}
 		return fmt.Sprintf("%s", resp), nil
 	} else {
 		return "", err
